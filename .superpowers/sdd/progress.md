@@ -37,3 +37,9 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Task 10: COMPLETE (commit 990c415, review clean)
 - Task 11: COMPLETE (commits e9c072b+6439a3b, fix: kk-consent notFound + reporting DELETE oldValue, review clean)
 - Task 12: COMPLETE (commit 5d4e982, review clean; isAfter finding was false positive — not imported)
+
+## Week 2 — POST-REVIEW FIXES
+- Final whole-branch review: commit 57207b3 (Critical: admin privilege escalation fix; 5 Important: soft-delete error checks, baseline rollback, kk-consent 404, activate deactivate-all error check)
+- Angle review + inline fixes: commit 6869433 (RACI null guard, stakeholders null guard, admin.ts env-var throw, ActivityItem hoist, double getSession removed, batch inserts in templates)
+- Build: `npm run build` → ✓ Compiled successfully
+- Week 2 COMPLETE (2026-07-01)

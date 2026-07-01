@@ -5,17 +5,17 @@
 ## Tasks
 
 - Task 1: COMPLETE (commit 6330370, review clean)
-- Task 2: PENDING — shadcn/ui Setup
-- Task 3: PENDING — Supabase Local Setup
-- Task 4: PENDING — Migration 001 (Initial Schema)
-- Task 5: PENDING — Migration 002 (RLS Policies)
-- Task 6: PENDING — Seed Data
-- Task 7: PENDING — Apply Migrations + Verify DB
-- Task 8: PENDING — Supabase Client Utilities
-- Task 9: PENDING — Global Auth Middleware
-- Task 10: PENDING — Auth Validations + API Routes
-- Task 11: PENDING — Login Page
-- Task 12: PENDING — Root Layout Cleanup
-- Task 13: PENDING — Sidebar + UserMenu Components
-- Task 14: PENDING — App Layout + Placeholder Home Page
-- Task 15: PENDING — Manual E2E Verification
+- Task 2: COMPLETE (commits f31317f→21a66df, fix for style/baseColor, review clean)
+- Task 3: COMPLETE (commit 7955ccf, supabase link skipped→SQL Editor fallback, review clean)
+- Task 4: COMPLETE (commit e07b269, review clean)
+- Task 5: COMPLETE (commit d10e101, review clean)
+- Task 6: COMPLETE (commit 4ccc79f, review clean)
+- Task 7: PENDING USER ACTION — run SQL in Supabase Dashboard (see instructions below)
+- Task 8: COMPLETE (commit 3cdb92e, review clean)
+- Task 9: COMPLETE (commit 49345f1, review clean)
+- Task 10: COMPLETE (commit 186d194, review clean)
+- Task 11: COMPLETE (commits 1c735f0+e576334, CSS fix included, review clean)
+- Task 12: COMPLETE (commit 5b29565, review clean)
+- Task 13: COMPLETE (commit 38eca70, review clean)
+- Task 14: COMPLETE (commit 751fc7d, review clean)
+- Task 15: PENDING — Manual E2E Verification (requires Task 7 + dev server)

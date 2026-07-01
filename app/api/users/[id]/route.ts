@@ -31,6 +31,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // Admin cannot modify Admin or Super Admin
     if (profile.role === 'admin' && target.role !== 'viewer') return forbidden()
 
+    // Note: super_admin escalation prevented at schema level (updateUserSchema only allows 'admin'|'viewer')
+
     const { data: updated, error } = await supabase
       .from('profiles')
       .update({ ...parsed.data, updated_at: new Date().toISOString() })

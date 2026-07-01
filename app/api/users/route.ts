@@ -6,11 +6,10 @@ import { insertAuditLog } from '@/lib/audit'
 
 export async function GET() {
   try {
-    const { user, profile } = await getSession()
+    const { user, profile, supabase } = await getSession()
     if (!user || !profile) return unauthorized()
     if (!isAdmin(profile.role)) return forbidden()
 
-    const { supabase } = await getSession()
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, full_name, role, is_active, created_at')

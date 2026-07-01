@@ -47,10 +47,11 @@ export async function PUT(
       .single()
 
     if (error) return serverError()
+    if (!upserted) return serverError()
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
-      action: 'UPDATE', entityType: 'raci_entries', entityId: upserted?.id,
+      action: 'UPDATE', entityType: 'raci_entries', entityId: upserted.id,
       entityDescription: `Set RACI ${parsed.data.role} untuk stakeholder ${params.stakeholderId}`,
       newValue: upserted,
     })

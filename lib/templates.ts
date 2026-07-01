@@ -101,12 +101,10 @@ export async function createLocationWithTemplate(
 
     if (!phaseRow) continue
 
-    for (let i = 0; i < phase.activities.length; i++) {
-      const tmpl = phase.activities[i]
+    const activityRows = phase.activities.map((tmpl, i) => {
       const mulai = addWorkingDays(projectStartDate, tmpl.offsetDaysStart, holidays)
       const selesai = addWorkingDays(mulai, tmpl.durationWorkingDays - 1, holidays)
-
-      await supabase.from('activities').insert({
+      return {
         phase_id: phaseRow.id,
         display_order: i + 1,
         kegiatan: tmpl.kegiatan,
@@ -114,7 +112,9 @@ export async function createLocationWithTemplate(
         tanggal_mulai_rencana: format(mulai, 'yyyy-MM-dd'),
         tanggal_selesai_rencana: format(selesai, 'yyyy-MM-dd'),
         is_milestone: tmpl.is_milestone ?? false,
-      })
-    }
+      }
+    })
+
+    await supabase.from('activities').insert(activityRows)
   }
 }

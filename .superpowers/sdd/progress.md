@@ -18,4 +18,22 @@
 - Task 12: COMPLETE (commit 5b29565, review clean)
 - Task 13: COMPLETE (commit 38eca70, review clean)
 - Task 14: COMPLETE (commit 751fc7d, review clean)
-- Task 15: PENDING — Manual E2E Verification (requires Task 7 + dev server)
+- Task 15: COMPLETE (E2E verified — login/logout/middleware/sidebar/role guard all working)
+- Middleware bugfix: commit 3455836 (exclude /api/auth/* from auth guard)
+- Week 1 final commit: e2f4193
+Task 1: COMPLETE (commit 4b14fb9, review clean)
+## Week 2
+# Plan: docs/superpowers/plans/2026-07-01-minggu2-data-layer-api.md
+# Base: e2f4193
+- Task 1: COMPLETE (commit 4b14fb9, review clean)
+- Task 2: COMPLETE (commit 0fd6e28, review clean)
+- Task 3: COMPLETE (commits 1d5366d+9e6c4cc, fix: double getSession + schema guard comment, review clean)
+- Task 4: COMPLETE (commits 93d6848+faebf89, fix: holiday/kk_consent error handling + cleanup, review clean)
+- Task 5: COMPLETE (commit ec9c087, review clean; noted: audit fetch-before-update race is accepted pattern for Week 2)
+- Task 6: COMPLETE (commits 9491e8a+50f3f61, fix: updated_by in lock + reorder error check, review clean)
+- Task 7: COMPLETE (commit 25161b4, review clean; minor: GET returns created_at, POST/PATCH don't — accepted)
+- Task 8: COMPLETE (commits b71d736+3d0346f, fix: oldValue in DELETE audit, review clean)
+- Task 9: COMPLETE (commit ac8651e, review clean; noted: [id] naming is codebase convention, insertAuditLog never throws by design)
+- Task 10: COMPLETE (commit 990c415, review clean)
+- Task 11: COMPLETE (commits e9c072b+6439a3b, fix: kk-consent notFound + reporting DELETE oldValue, review clean)
+- Task 12: COMPLETE (commit 5d4e982, review clean; isAfter finding was false positive — not imported)

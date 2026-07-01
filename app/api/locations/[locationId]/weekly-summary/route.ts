@@ -10,6 +10,18 @@ import {
   isWithinInterval,
 } from 'date-fns'
 
+interface ActivityItem {
+  id: string
+  kegiatan: string
+  pic: string
+  phase_code: string
+  status: string
+  progress_pct: number
+  tanggal_mulai_rencana: string
+  tanggal_selesai_rencana: string
+  updated_at: string
+}
+
 export async function GET(request: NextRequest, { params }: { params: { locationId: string } }) {
   try {
     const { user, profile, supabase } = await getSession()
@@ -37,18 +49,6 @@ export async function GET(request: NextRequest, { params }: { params: { location
       .order('display_order')
 
     if (!phases) return serverError()
-
-    interface ActivityItem {
-      id: string
-      kegiatan: string
-      pic: string
-      phase_code: string
-      status: string
-      progress_pct: number
-      tanggal_mulai_rencana: string
-      tanggal_selesai_rencana: string
-      updated_at: string
-    }
 
     const allActivities: ActivityItem[] = phases.flatMap((ph) =>
       (ph.activities as ActivityItem[] ?? []).map((a) => ({ ...a, phase_code: ph.phase_code }))

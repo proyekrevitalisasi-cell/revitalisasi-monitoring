@@ -47,9 +47,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!sh) return serverError()
+
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
-      action: 'CREATE', entityType: 'stakeholders', entityId: sh!.id,
+      action: 'CREATE', entityType: 'stakeholders', entityId: sh.id,
       entityDescription: `Tambah stakeholder ${parsed.data.code} – ${parsed.data.name}`,
       newValue: parsed.data,
     })

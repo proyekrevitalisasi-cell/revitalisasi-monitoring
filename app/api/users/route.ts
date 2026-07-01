@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, profile } = await getSession()
+    const { user, profile, supabase } = await getSession()
     if (!user || !profile) return unauthorized()
     if (!isAdmin(profile.role)) return forbidden()
 
@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger handle_new_user sets role from metadata; also update created_by
-    const { supabase } = await getSession()
     await supabase
       .from('profiles')
       .update({ created_by: user.id })

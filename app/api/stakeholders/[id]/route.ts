@@ -49,7 +49,8 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const { data: current } = await supabase.from('stakeholders').select('id, code, name').eq('id', params.id).single()
     if (!current) return notFound()
 
-    await supabase.from('stakeholders').update({ is_active: false }).eq('id', params.id)
+    const { error: deleteError } = await supabase.from('stakeholders').update({ is_active: false }).eq('id', params.id)
+    if (deleteError) return serverError()
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
       action: 'DELETE', entityType: 'stakeholders', entityId: params.id,

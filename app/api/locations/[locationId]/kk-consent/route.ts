@@ -12,7 +12,11 @@ export async function GET(_request: NextRequest, { params }: { params: { locatio
       .select('*')
       .eq('location_id', params.locationId)
       .single()
-    if (error) return serverError()
+    if (error) {
+      // PGRST116 = no rows returned by .single()
+      if (error.code === 'PGRST116') return notFound()
+      return serverError()
+    }
     return NextResponse.json({ data, error: null })
   } catch {
     return serverError()

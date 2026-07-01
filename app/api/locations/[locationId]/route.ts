@@ -59,10 +59,11 @@ export async function DELETE(_request: NextRequest, { params }: { params: { loca
       .single()
     if (!current) return notFound()
 
-    await supabase
+    const { error: deleteError } = await supabase
       .from('locations')
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq('id', params.locationId)
+    if (deleteError) return serverError()
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,

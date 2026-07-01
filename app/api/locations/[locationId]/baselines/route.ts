@@ -35,7 +35,8 @@ export async function POST(request: NextRequest, { params }: { params: { locatio
     }
 
     // Deactivate all existing baselines for this location
-    await supabase.from('baselines').update({ is_active: false }).eq('location_id', params.locationId)
+    const { error: deactivateError } = await supabase.from('baselines').update({ is_active: false }).eq('location_id', params.locationId)
+    if (deactivateError) return serverError()
 
     // Create new baseline
     const { data: baseline, error: bError } = await supabase
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest, { params }: { params: { locatio
         .in('phase_id', phaseIds)
 
       if (activities && activities.length > 0) {
-        await supabase.from('baseline_activities').insert(
+        const { error: snapshotError } = await supabase.from('baseline_activities').insert(
           activities.map((a) => ({
             baseline_id: baseline.id,
             activity_id: a.id,
@@ -72,6 +73,10 @@ export async function POST(request: NextRequest, { params }: { params: { locatio
             is_milestone: a.is_milestone,
           }))
         )
+        if (snapshotError) {
+          await supabase.from('baselines').delete().eq('id', baseline.id)
+          return serverError()
+        }
       }
     }
 

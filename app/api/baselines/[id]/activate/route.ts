@@ -12,7 +12,8 @@ export async function PATCH(_request: NextRequest, { params }: { params: { id: s
     if (!target) return notFound()
 
     // Deactivate all other baselines for this location
-    await supabase.from('baselines').update({ is_active: false }).eq('location_id', target.location_id)
+    const { error: deactivateError } = await supabase.from('baselines').update({ is_active: false }).eq('location_id', target.location_id)
+    if (deactivateError) return serverError()
 
     const { data: activated, error } = await supabase
       .from('baselines')

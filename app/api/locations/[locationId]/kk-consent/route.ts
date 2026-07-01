@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, unauthorized, forbidden, serverError, isAdmin } from '@/lib/auth-helpers'
+import { getSession, unauthorized, forbidden, serverError, isAdmin, notFound } from '@/lib/auth-helpers'
 import { updateKkConsentSchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
 
@@ -35,6 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { locati
     }
 
     const { data: current } = await supabase.from('kk_consent').select('*').eq('location_id', params.locationId).single()
+    if (!current) return notFound()
 
     const { data: updated, error } = await supabase
       .from('kk_consent')

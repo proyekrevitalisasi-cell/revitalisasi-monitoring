@@ -56,6 +56,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
       action: 'DELETE', entityType: 'reporting_items', entityId: params.id,
       entityDescription: `Hapus item pelaporan: ${current.jenis_laporan}`,
+      oldValue: current,
     })
     return NextResponse.json({ data: { id: params.id }, error: null })
   } catch {

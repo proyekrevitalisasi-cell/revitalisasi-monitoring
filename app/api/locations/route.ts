@@ -59,14 +59,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch holidays for calendar calculation
-    const { data: holidayRows } = await supabase.from('work_calendar').select('holiday_date')
+    const { data: holidayRows, error: calError } = await supabase.from('work_calendar').select('holiday_date')
+    if (calError) {
+      await supabase.from('locations').delete().eq('id', location.id)
+      return serverError()
+    }
     const holidays = (holidayRows ?? []).map((h) => parseISO(h.holiday_date))
 
     // Create 4 phases + activities from template
     await createLocationWithTemplate(supabase, location.id, parseISO(project_start_date), holidays)
 
     // Insert kk_consent row
-    await supabase.from('kk_consent').insert({ location_id: location.id, target_kk: 0, threshold_pct: 60 })
+    const { error: kkError } = await supabase
+      .from('kk_consent')
+      .insert({ location_id: location.id, target_kk: 0, threshold_pct: 60 })
+    if (kkError) {
+      await supabase.from('locations').delete().eq('id', location.id)
+      return serverError()
+    }
 
     await insertAuditLog({
       userId: user.id,

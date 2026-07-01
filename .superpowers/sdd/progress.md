@@ -4,7 +4,7 @@
 
 ## Tasks
 
-- Task 1: PENDING — Initialize Next.js 14 Project + Git
+- Task 1: COMPLETE (commit 6330370, review clean)
 - Task 2: PENDING — shadcn/ui Setup
 - Task 3: PENDING — Supabase Local Setup
 - Task 4: PENDING — Migration 001 (Initial Schema)

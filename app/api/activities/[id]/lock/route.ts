@@ -18,7 +18,7 @@ export async function PATCH(_request: NextRequest, { params }: { params: { id: s
     const newLocked = !current.date_locked
     const { data: updated, error } = await supabase
       .from('activities')
-      .update({ date_locked: newLocked, updated_at: new Date().toISOString() })
+      .update({ date_locked: newLocked, updated_by: user.id, updated_at: new Date().toISOString() })
       .eq('id', params.id)
       .select('id, kegiatan, date_locked')
       .single()

@@ -18,11 +18,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Batch update display_order
-    await Promise.all(
+    const results = await Promise.all(
       parsed.data.items.map(({ id, display_order }) =>
         supabase.from('activities').update({ display_order }).eq('id', id)
       )
     )
+
+    const failed = results.filter((r) => r.error)
+    if (failed.length > 0) return serverError()
 
     return NextResponse.json({ data: { updated: parsed.data.items.length }, error: null })
   } catch {

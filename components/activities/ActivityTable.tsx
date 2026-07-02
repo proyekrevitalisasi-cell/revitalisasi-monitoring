@@ -87,6 +87,11 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     setActivities((prev) => [...prev, activity])
   }, [])
 
+  const handleDeleted = useCallback((id: string) => {
+    delete savedSnapshots.current[id]
+    setActivities((prev) => prev.filter((a) => a.id !== id))
+  }, [])
+
   const handleMove = useCallback(
     async (id: string, direction: 'up' | 'down') => {
       const sorted = [...activities].sort((a, b) => a.display_order - b.display_order)
@@ -208,6 +213,7 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
                 onFieldChange={handleFieldChange}
                 onMove={handleMove}
                 onToggleLock={handleToggleLock}
+                onDeleted={handleDeleted}
               />
             ))}
           </TableBody>

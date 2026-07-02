@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { SaveStatusBadge, type SaveStatus } from './SaveStatusBadge'
+import { DeleteActivityDialog } from './DeleteActivityDialog'
 import { computeDurasiHK, validateRencanaDates, validateRealisasiDates } from '@/lib/activity-helpers'
 import { cn } from '@/lib/utils'
 import type { Activity } from '@/lib/types'
@@ -31,6 +32,7 @@ interface ActivityRowProps {
   onFieldChange: (id: string, changes: Partial<Activity>) => void
   onMove: (id: string, direction: 'up' | 'down') => void
   onToggleLock: (id: string) => void
+  onDeleted: (id: string) => void
 }
 
 export function ActivityRow({
@@ -46,6 +48,7 @@ export function ActivityRow({
   onFieldChange,
   onMove,
   onToggleLock,
+  onDeleted,
 }: ActivityRowProps) {
   const holidayDates = holidays.map((h) => new Date(h))
   const durasiHK = computeDurasiHK(activity.tanggal_mulai_rencana, activity.tanggal_selesai_rencana, holidayDates)
@@ -284,7 +287,11 @@ export function ActivityRow({
           <SaveStatusBadge status={saveStatus} />
         </TableCell>
       )}
-      {isAdmin && <TableCell />}
+      {isAdmin && (
+        <TableCell>
+          <DeleteActivityDialog activityId={activity.id} activityName={activity.kegiatan} onDeleted={onDeleted} />
+        </TableCell>
+      )}
     </TableRow>
   )
 }

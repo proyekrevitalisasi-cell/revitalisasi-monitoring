@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ActivityRow } from './ActivityRow'
+import { AddActivityDialog } from './AddActivityDialog'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
 import type { Activity } from '@/lib/types'
 import type { SaveStatus } from './SaveStatusBadge'
@@ -17,7 +18,6 @@ interface ActivityTableProps {
 }
 
 export function ActivityTable({ phaseId, initialActivities, depCounts, holidays, isAdmin }: ActivityTableProps) {
-  void phaseId // reserved for Task 7-8 (reorder/lock persistence); not yet used in this task
   const [activities, setActivities] = useState<Activity[]>(initialActivities)
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({})
   const [movingIds, setMovingIds] = useState<Set<string>>(new Set())
@@ -81,6 +81,11 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     },
     [debouncedFlush]
   )
+
+  const handleCreated = useCallback((activity: Activity) => {
+    savedSnapshots.current[activity.id] = activity
+    setActivities((prev) => [...prev, activity])
+  }, [])
 
   const handleMove = useCallback(
     async (id: string, direction: 'up' | 'down') => {
@@ -159,53 +164,60 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
   const sortedActivities = [...activities].sort((a, b) => a.display_order - b.display_order)
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {isAdmin && <TableHead className="w-8" />}
-            <TableHead className="w-10">Urut</TableHead>
-            <TableHead className="w-8">♦</TableHead>
-            <TableHead className="w-8">🔒</TableHead>
-            <TableHead className="w-16">Kritis</TableHead>
-            <TableHead>Kegiatan</TableHead>
-            <TableHead>PIC</TableHead>
-            <TableHead className="w-14">Dep</TableHead>
-            <TableHead>Rencana Mulai</TableHead>
-            <TableHead>Rencana Selesai</TableHead>
-            <TableHead className="w-20">Durasi (HK)</TableHead>
-            <TableHead>Baseline Mulai</TableHead>
-            <TableHead className="w-20">Deviasi</TableHead>
-            <TableHead>Realisasi Mulai</TableHead>
-            <TableHead>Realisasi Selesai</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-24">%</TableHead>
-            <TableHead>Catatan</TableHead>
-            <TableHead className="w-16">Risiko</TableHead>
-            {isAdmin && <TableHead className="w-20">Simpan</TableHead>}
-            {isAdmin && <TableHead className="w-8" />}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedActivities.map((activity, index) => (
-            <ActivityRow
-              key={activity.id}
-              activity={activity}
-              index={index}
-              isFirst={index === 0}
-              isLast={index === sortedActivities.length - 1}
-              depCount={depCounts[activity.id] ?? 0}
-              holidays={holidays}
-              isAdmin={isAdmin}
-              saveStatus={saveStatuses[activity.id] ?? 'idle'}
-              isMoving={movingIds.has(activity.id)}
-              onFieldChange={handleFieldChange}
-              onMove={handleMove}
-              onToggleLock={handleToggleLock}
-            />
-          ))}
-        </TableBody>
-      </Table>
+    <div>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {isAdmin && <TableHead className="w-8" />}
+              <TableHead className="w-10">Urut</TableHead>
+              <TableHead className="w-8">♦</TableHead>
+              <TableHead className="w-8">🔒</TableHead>
+              <TableHead className="w-16">Kritis</TableHead>
+              <TableHead>Kegiatan</TableHead>
+              <TableHead>PIC</TableHead>
+              <TableHead className="w-14">Dep</TableHead>
+              <TableHead>Rencana Mulai</TableHead>
+              <TableHead>Rencana Selesai</TableHead>
+              <TableHead className="w-20">Durasi (HK)</TableHead>
+              <TableHead>Baseline Mulai</TableHead>
+              <TableHead className="w-20">Deviasi</TableHead>
+              <TableHead>Realisasi Mulai</TableHead>
+              <TableHead>Realisasi Selesai</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-24">%</TableHead>
+              <TableHead>Catatan</TableHead>
+              <TableHead className="w-16">Risiko</TableHead>
+              {isAdmin && <TableHead className="w-20">Simpan</TableHead>}
+              {isAdmin && <TableHead className="w-8" />}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedActivities.map((activity, index) => (
+              <ActivityRow
+                key={activity.id}
+                activity={activity}
+                index={index}
+                isFirst={index === 0}
+                isLast={index === sortedActivities.length - 1}
+                depCount={depCounts[activity.id] ?? 0}
+                holidays={holidays}
+                isAdmin={isAdmin}
+                saveStatus={saveStatuses[activity.id] ?? 'idle'}
+                isMoving={movingIds.has(activity.id)}
+                onFieldChange={handleFieldChange}
+                onMove={handleMove}
+                onToggleLock={handleToggleLock}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {isAdmin && (
+        <div className="mt-3">
+          <AddActivityDialog phaseId={phaseId} onCreated={handleCreated} />
+        </div>
+      )}
     </div>
   )
 }

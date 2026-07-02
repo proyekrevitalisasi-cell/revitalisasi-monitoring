@@ -44,12 +44,19 @@ export async function runCpmForLocation(
 ): Promise<CpmRunResult> {
   const empty: CpmRunResult = { updatedActivities: [], criticalPath: [], hasCycle: false, cycleIds: [] }
 
-  const { data: location } = await supabase
+  const { data: location, error: locationError } = await supabase
     .from('locations')
     .select('project_start_date')
     .eq('id', locationId)
     .single()
-  if (!location) return empty
+  if (locationError) {
+    // A silently-swallowed error here (e.g. a missing/renamed column) would
+    // make CPM appear to succeed while quietly doing nothing — throw so it
+    // surfaces as a 500 through the calling route's existing try/catch,
+    // instead of a no-op that looks identical to "nothing to recalculate".
+    throw new Error(`runCpmForLocation: failed to load location ${locationId}: ${locationError.message}`)
+  }
+  if (!location || !location.project_start_date) return empty
 
   const { data: phases } = await supabase.from('phases').select('id').eq('location_id', locationId)
   const phaseIds = (phases ?? []).map((p: { id: string }) => p.id)

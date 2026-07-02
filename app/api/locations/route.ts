@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Insert location
     const { data: location, error: locError } = await supabase
       .from('locations')
-      .insert({ name, code: code.toUpperCase(), description, created_by: user.id })
+      .insert({ name, code: code.toUpperCase(), description, project_start_date, created_by: user.id })
       .select('id, name, code')
       .single()
 

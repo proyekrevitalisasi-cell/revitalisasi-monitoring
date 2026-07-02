@@ -259,7 +259,7 @@ export function ActivityRow({
               max={100}
               value={activity.progress_pct}
               onChange={(e) => {
-                const value = Math.min(100, Math.max(0, Number(e.target.value) || 0))
+                const value = Math.min(100, Math.max(0, Math.round(Number(e.target.value) || 0)))
                 onFieldChange(activity.id, { progress_pct: value })
               }}
               className="h-6 w-16 text-xs"

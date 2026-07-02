@@ -1,13 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectCycle,
-  runForwardPassForTest,
+  runCpm,
   cpmStartToDate,
   cpmFinishToDate,
-  buildNodeMapForTest,
-  topologicalSortForTest,
-  buildAdjacencyMapsForTest,
-  forwardPassForTest,
   type CpmDependency,
   type CpmActivity,
 } from './cpm'
@@ -56,89 +52,88 @@ function activity(id: string, duration: number): CpmActivity {
 
 describe('forward pass', () => {
   it('computes ES=0, EF=duration for an activity with no predecessors', () => {
-    const nodes = runForwardPassForTest([activity('A', 5)], [])
-    expect(nodes.get('A')).toMatchObject({ earliestStart: 0, earliestFinish: 5 })
+    const result = runCpm([activity('A', 5)], [], new Date('2026-01-01'), [])
+    expect(result.nodes.get('A')).toMatchObject({ earliestStart: 0, earliestFinish: 5 })
   })
 
   it('FS: successor starts when predecessor finishes (+ lag)', () => {
-    const nodes = runForwardPassForTest(
+    const result = runCpm(
       [activity('A', 5), activity('B', 3)],
-      [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 }]
+      [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 }],
+      new Date('2026-01-01'),
+      []
     )
-    expect(nodes.get('B')).toMatchObject({ earliestStart: 5, earliestFinish: 8 })
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 5, earliestFinish: 8 })
   })
 
   it('FS with positive lag delays the successor further', () => {
-    const nodes = runForwardPassForTest(
+    const result = runCpm(
       [activity('A', 5), activity('B', 3)],
-      [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 2 }]
+      [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 2 }],
+      new Date('2026-01-01'),
+      []
     )
-    expect(nodes.get('B')).toMatchObject({ earliestStart: 7, earliestFinish: 10 })
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 7, earliestFinish: 10 })
   })
 
   it('SS: successor starts when predecessor starts (+ lag)', () => {
-    const nodes = runForwardPassForTest(
+    const result = runCpm(
       [activity('A', 5), activity('B', 3)],
-      [{ predecessorId: 'A', successorId: 'B', type: 'SS', lagDays: 1 }]
+      [{ predecessorId: 'A', successorId: 'B', type: 'SS', lagDays: 1 }],
+      new Date('2026-01-01'),
+      []
     )
-    expect(nodes.get('B')).toMatchObject({ earliestStart: 1, earliestFinish: 4 })
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 1, earliestFinish: 4 })
   })
 
   it('FF: successor finishes when predecessor finishes (+ lag)', () => {
-    const nodes = runForwardPassForTest(
+    const result = runCpm(
       [activity('A', 5), activity('B', 3)],
-      [{ predecessorId: 'A', successorId: 'B', type: 'FF', lagDays: 0 }]
+      [{ predecessorId: 'A', successorId: 'B', type: 'FF', lagDays: 0 }],
+      new Date('2026-01-01'),
+      []
     )
-    expect(nodes.get('B')).toMatchObject({ earliestStart: 2, earliestFinish: 5 })
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 2, earliestFinish: 5 })
   })
 
   it('SF: successor finishes when predecessor starts (+ lag)', () => {
-    const nodes = runForwardPassForTest(
+    const result = runCpm(
       [activity('A', 2), activity('B', 3)],
-      [{ predecessorId: 'A', successorId: 'B', type: 'SF', lagDays: 6 }]
+      [{ predecessorId: 'A', successorId: 'B', type: 'SF', lagDays: 6 }],
+      new Date('2026-01-01'),
+      []
     )
-    expect(nodes.get('B')).toMatchObject({ earliestStart: 3, earliestFinish: 6 })
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 3, earliestFinish: 6 })
   })
 
   it('takes the max constraint when a successor has multiple predecessors', () => {
-    const nodes = runForwardPassForTest(
+    const result = runCpm(
       [activity('A', 2), activity('B', 1), activity('C', 3)],
       [
         { predecessorId: 'A', successorId: 'C', type: 'FS', lagDays: 0 },
         { predecessorId: 'B', successorId: 'C', type: 'FS', lagDays: 0 },
-      ]
+      ],
+      new Date('2026-01-01'),
+      []
     )
     // A finishes at 2, B finishes at 1 — C must wait for the later one (A)
-    expect(nodes.get('C')).toMatchObject({ earliestStart: 2, earliestFinish: 5 })
+    expect(result.nodes.get('C')).toMatchObject({ earliestStart: 2, earliestFinish: 5 })
   })
 })
 
-describe('locked activities in forward pass', () => {
-  it('uses the locked date as ES (converted via workingDaysBetween from projectStart), ignoring predecessors', () => {
+describe('locked activities via runCpm', () => {
+  it('uses the locked date as ES, ignoring predecessors', () => {
     const projectStart = new Date('2026-07-01') // Wednesday
     const activities: CpmActivity[] = [
       { id: 'A', duration: 2, dateLocked: false, lockedStartDate: null },
-      {
-        id: 'B',
-        duration: 5,
-        dateLocked: true,
-        // 2026-07-08 is also a Wednesday (7 calendar days after projectStart).
-        // workingDaysBetween counts start exclusive / end inclusive, so it
-        // spans Thu, Fri, Mon, Tue, Wed = 5 working days (one weekend skipped).
-        lockedStartDate: new Date('2026-07-08'),
-      },
+      { id: 'B', duration: 5, dateLocked: true, lockedStartDate: new Date('2026-07-08') },
     ]
-    // A -> B FS, lag 0: if B were NOT locked, B.ES would be A.EF = 2.
-    // Because B is locked, its ES must come from lockedStartDate instead (5, not 2).
-    const deps: CpmDependency[] = [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 }]
-    const nodeMap = buildNodeMapForTest(activities)
-    const order = topologicalSortForTest(
-      activities.map((a) => a.id),
-      deps
-    )
-    const { predecessorsOf } = buildAdjacencyMapsForTest(activities.map((a) => a.id), deps)
-    forwardPassForTest(order, nodeMap, predecessorsOf, projectStart, [])
-    expect(nodeMap.get('B')).toMatchObject({ earliestStart: 5, earliestFinish: 10 })
+    const dependencies: CpmDependency[] = [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 }]
+    const result = runCpm(activities, dependencies, projectStart, [])
+    // workingDaysBetween(2026-07-01 Wed, 2026-07-08 Wed) = 5 working days
+    // (Thu, Fri, Mon, Tue, Wed — one weekend skipped), same math verified in
+    // Task 4's equivalent test.
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 5, earliestFinish: 10 })
   })
 })
 
@@ -164,5 +159,66 @@ describe('date conversion', () => {
     expect(duration).toBe(5)
     const reconstructedSelesai = cpmFinishToDate(duration, projectStart, [])
     expect(reconstructedSelesai.toISOString().slice(0, 10)).toBe(selesai)
+  })
+})
+
+describe('runCpm — full integration', () => {
+  const projectStart = new Date('2026-07-01')
+
+  it('computes float and critical path for a diamond with an off-critical branch', () => {
+    // A -> B -> D (critical path: durations 2, 5, 3 = ends at day 10)
+    // A -> C -> D (off-critical: durations 2, 1, 3 = ends at day 6, float 4)
+    const activities: CpmActivity[] = [
+      { id: 'A', duration: 2, dateLocked: false, lockedStartDate: null },
+      { id: 'B', duration: 5, dateLocked: false, lockedStartDate: null },
+      { id: 'C', duration: 1, dateLocked: false, lockedStartDate: null },
+      { id: 'D', duration: 3, dateLocked: false, lockedStartDate: null },
+    ]
+    const dependencies: CpmDependency[] = [
+      { predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 },
+      { predecessorId: 'A', successorId: 'C', type: 'FS', lagDays: 0 },
+      { predecessorId: 'B', successorId: 'D', type: 'FS', lagDays: 0 },
+      { predecessorId: 'C', successorId: 'D', type: 'FS', lagDays: 0 },
+    ]
+
+    const result = runCpm(activities, dependencies, projectStart, [])
+
+    expect(result.hasCycle).toBe(false)
+    expect(result.nodes.get('A')).toMatchObject({ earliestStart: 0, earliestFinish: 2, latestStart: 0, latestFinish: 2, totalFloat: 0, isCritical: true })
+    expect(result.nodes.get('B')).toMatchObject({ earliestStart: 2, earliestFinish: 7, latestStart: 2, latestFinish: 7, totalFloat: 0, isCritical: true })
+    expect(result.nodes.get('C')).toMatchObject({ earliestStart: 2, earliestFinish: 3, latestStart: 6, latestFinish: 7, totalFloat: 4, isCritical: false })
+    expect(result.nodes.get('D')).toMatchObject({ earliestStart: 7, earliestFinish: 10, latestStart: 7, latestFinish: 10, totalFloat: 0, isCritical: true })
+    expect(result.criticalPath).toEqual(['A', 'B', 'D'])
+  })
+
+  it('returns hasCycle true with no nodes computed when the dependency graph has a cycle', () => {
+    const activities: CpmActivity[] = [
+      { id: 'A', duration: 1, dateLocked: false, lockedStartDate: null },
+      { id: 'B', duration: 1, dateLocked: false, lockedStartDate: null },
+    ]
+    const dependencies: CpmDependency[] = [
+      { predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 },
+      { predecessorId: 'B', successorId: 'A', type: 'FS', lagDays: 0 },
+    ]
+    const result = runCpm(activities, dependencies, projectStart, [])
+    expect(result.hasCycle).toBe(true)
+    expect(result.cycleIds).toEqual(expect.arrayContaining(['A', 'B']))
+    expect(result.nodes.size).toBe(0)
+  })
+
+  it('marks every activity critical when there are no dependencies and only one activity', () => {
+    const activities: CpmActivity[] = [{ id: 'A', duration: 3, dateLocked: false, lockedStartDate: null }]
+    const result = runCpm(activities, [], projectStart, [])
+    expect(result.nodes.get('A')).toMatchObject({ totalFloat: 0, isCritical: true })
+  })
+
+  it('gives independent parallel activities float relative to the longest one', () => {
+    const activities: CpmActivity[] = [
+      { id: 'SHORT', duration: 2, dateLocked: false, lockedStartDate: null },
+      { id: 'LONG', duration: 10, dateLocked: false, lockedStartDate: null },
+    ]
+    const result = runCpm(activities, [], projectStart, [])
+    expect(result.nodes.get('LONG')).toMatchObject({ isCritical: true, totalFloat: 0 })
+    expect(result.nodes.get('SHORT')).toMatchObject({ isCritical: false, totalFloat: 8 })
   })
 })

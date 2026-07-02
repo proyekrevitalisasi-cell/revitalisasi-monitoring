@@ -180,20 +180,6 @@ function buildAdjacencyMaps(
   return { predecessorsOf, successorsOf }
 }
 
-// Exported only for Task 3's own tests. Task 5 replaces call sites with the
-// full `runCpm`; this export is removed at the end of Task 5.
-export function runForwardPassForTest(
-  activities: CpmActivity[],
-  dependencies: CpmDependency[]
-): Map<string, CpmNode> {
-  const activityIds = activities.map((a) => a.id)
-  const nodeMap = buildNodeMap(activities)
-  const order = topologicalSort(activityIds, dependencies)
-  const { predecessorsOf } = buildAdjacencyMaps(activityIds, dependencies)
-  forwardPass(order, nodeMap, predecessorsOf, new Date('2026-01-01'), [])
-  return nodeMap
-}
-
 export function cpmStartToDate(earliestStart: number, projectStart: Date, holidays: Date[]): Date {
   return addWorkingDays(projectStart, earliestStart, holidays)
 }
@@ -202,9 +188,114 @@ export function cpmFinishToDate(earliestFinish: number, projectStart: Date, holi
   return addWorkingDays(projectStart, earliestFinish - 1, holidays)
 }
 
-// Temporary test-only exports, same lifecycle as runForwardPassForTest —
-// removed in Task 5 once runCpm supersedes them.
-export const buildNodeMapForTest = buildNodeMap
-export const topologicalSortForTest = topologicalSort
-export const buildAdjacencyMapsForTest = buildAdjacencyMaps
-export const forwardPassForTest = forwardPass
+function backwardPass(
+  order: string[],
+  nodeMap: Map<string, CpmNode>,
+  successorsOf: Map<string, CpmDependency[]>,
+  projectFinish: number
+): void {
+  const reverseOrder = [...order].reverse()
+  for (const id of reverseOrder) {
+    const node = nodeMap.get(id)!
+    const succs = successorsOf.get(id) ?? []
+
+    if (succs.length === 0) {
+      node.latestFinish = projectFinish
+      node.latestStart = node.latestFinish - node.duration
+      continue
+    }
+
+    let lf = Infinity
+    for (const dep of succs) {
+      const succNode = nodeMap.get(dep.successorId)!
+      if (dep.type === 'FS') {
+        lf = Math.min(lf, succNode.latestStart - dep.lagDays)
+      } else if (dep.type === 'SS') {
+        lf = Math.min(lf, succNode.latestStart - dep.lagDays + node.duration)
+      } else if (dep.type === 'FF') {
+        lf = Math.min(lf, succNode.latestFinish - dep.lagDays)
+      } else if (dep.type === 'SF') {
+        lf = Math.min(lf, succNode.latestFinish - dep.lagDays + node.duration)
+      }
+    }
+    node.latestFinish = lf
+    node.latestStart = node.latestFinish - node.duration
+  }
+}
+
+function buildCriticalPath(
+  order: string[],
+  nodeMap: Map<string, CpmNode>,
+  dependencies: CpmDependency[]
+): string[] {
+  const criticalIds = new Set(order.filter((id) => nodeMap.get(id)!.isCritical))
+  if (criticalIds.size === 0) return []
+
+  const criticalEdges = new Map<string, string[]>()
+  for (const id of Array.from(criticalIds)) criticalEdges.set(id, [])
+  for (const dep of dependencies) {
+    if (criticalIds.has(dep.predecessorId) && criticalIds.has(dep.successorId)) {
+      criticalEdges.get(dep.predecessorId)!.push(dep.successorId)
+    }
+  }
+
+  const hasIncoming = new Set<string>()
+  for (const targets of Array.from(criticalEdges.values())) {
+    for (const t of targets) hasIncoming.add(t)
+  }
+  const startCandidates = order.filter((id) => criticalIds.has(id) && !hasIncoming.has(id))
+  const start = startCandidates[0]
+  if (!start) return Array.from(criticalIds)
+
+  const path: string[] = [start]
+  let current = start
+  const visited = new Set([start])
+  while (true) {
+    const nexts = (criticalEdges.get(current) ?? []).filter((n) => !visited.has(n))
+    if (nexts.length === 0) break
+    const next = nexts[0]
+    path.push(next)
+    visited.add(next)
+    current = next
+  }
+  return path
+}
+
+/**
+ * Run CPM for a full set of activities and dependencies in one location.
+ * Pure — no DB access. See lib/cpm-runner.ts for the DB-aware wrapper.
+ */
+export function runCpm(
+  activities: CpmActivity[],
+  dependencies: CpmDependency[],
+  projectStart: Date,
+  holidays: Date[]
+): CpmResult {
+  const activityIds = activities.map((a) => a.id)
+  const { hasCycle, cycleIds } = detectCycle(activityIds, dependencies)
+  if (hasCycle) {
+    return { nodes: new Map(), criticalPath: [], hasCycle: true, cycleIds }
+  }
+
+  const nodeMap = buildNodeMap(activities)
+  const order = topologicalSort(activityIds, dependencies)
+  const { predecessorsOf, successorsOf } = buildAdjacencyMaps(activityIds, dependencies)
+
+  forwardPass(order, nodeMap, predecessorsOf, projectStart, holidays)
+
+  let projectFinish = 0
+  for (const node of Array.from(nodeMap.values())) {
+    projectFinish = Math.max(projectFinish, node.earliestFinish)
+  }
+
+  backwardPass(order, nodeMap, successorsOf, projectFinish)
+
+  for (const node of Array.from(nodeMap.values())) {
+    node.totalFloat = node.latestStart - node.earliestStart
+    node.isCritical = node.totalFloat === 0
+  }
+
+  const criticalPath = buildCriticalPath(order, nodeMap, dependencies)
+
+  return { nodes: nodeMap, criticalPath, hasCycle: false, cycleIds: [] }
+}

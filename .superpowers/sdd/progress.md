@@ -43,3 +43,25 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Angle review + inline fixes: commit 6869433 (RACI null guard, stakeholders null guard, admin.ts env-var throw, ActivityItem hoist, double getSession removed, batch inserts in templates)
 - Build: `npm run build` → ✓ Compiled successfully
 - Week 2 COMPLETE (2026-07-01)
+
+## Week 3
+# Plan: docs/superpowers/plans/2026-07-02-minggu3-fase-crud.md
+# Base: 0515cf5
+- Task 1: complete (commits 0515cf5..294d4b3, review clean)
+- Task 2: complete (commits 294d4b3..bada936, fix: missing package.json/lock deps committed separately, review clean)
+- Task 3: complete (commit c1554c6, review clean)
+- Task 4: complete (commit 48d3224, review clean)
+- Task 5: complete (commit 1cbde34, review clean; reviewer noted depCounts predecessor_id-only filter — matches pre-existing, already-approved Week 2 pattern in /api/locations/[locationId]/dependencies, not a gap)
+- Task 6: complete (commit d9cf5e7, review clean; disclosed deviation: unused-var lint fix via `void` statements instead of underscore-prefixed params — verified inert by reviewer)
+- Task 7: complete (commit e1b8d9f, review clean; minor stale comment noted, not fixed)
+- Task 8: complete (commits e1b8d9f..f77b5cf, fix: rapid-double-click race guard on reorder buttons, review clean)
+- Task 9: complete (commit 4a353c0, review clean; minor: form not reset on cancel/dismiss, matches brief as-written, not fixed)
+- Task 10: complete (commit 1a8662b, review clean)
+- Task 11: PENDING USER ACTION — Docker/Supabase local not reachable from agent's Bash session (Windows elevation issue) and no headless-browser tool available; user to run the manual E2E checklist themselves (see plan Task 11, Steps 1-4)
+
+## Week 3 — FINAL WHOLE-BRANCH REVIEW
+- Reviewed range 0515cf5..1a8662b (opus). Verdict: Ready to merge, with fixes.
+- Important #1: progress_pct numeric input could send non-integer, rejected by server schema — FIXED (commit 940cd7d, Math.round added)
+- Important #2: 🔒 lock toggle doesn't disable date inputs — assessed as by-design, not a bug: schema comment confirms date_locked is a flag for the Week 4 CPM engine (protects from auto-shift), not a UI edit-lock. No fix applied.
+- Minor items (depCounts query count, holiday Date re-parsing per render, ActivityRow not memoized, unused ApiResponse<T> export): accepted as-is, no action.
+- Week 3 implementation COMPLETE (2026-07-02) pending user's manual E2E pass (Task 11)

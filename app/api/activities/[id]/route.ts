@@ -25,6 +25,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       .single()
     if (!current) return notFound()
 
+    const mergedMulaiRencana = parsed.data.tanggal_mulai_rencana ?? current.tanggal_mulai_rencana
+    const mergedSelesaiRencana = parsed.data.tanggal_selesai_rencana ?? current.tanggal_selesai_rencana
+    if (mergedSelesaiRencana < mergedMulaiRencana) {
+      return NextResponse.json(
+        { data: null, error: { code: 'VALIDATION_ERROR', message: 'Tanggal selesai rencana harus setelah tanggal mulai rencana' } },
+        { status: 400 }
+      )
+    }
+
+    const mergedMulaiRealisasi =
+      parsed.data.tanggal_mulai_realisasi !== undefined ? parsed.data.tanggal_mulai_realisasi : current.tanggal_mulai_realisasi
+    const mergedSelesaiRealisasi =
+      parsed.data.tanggal_selesai_realisasi !== undefined ? parsed.data.tanggal_selesai_realisasi : current.tanggal_selesai_realisasi
+    if (mergedMulaiRealisasi && mergedSelesaiRealisasi && mergedSelesaiRealisasi < mergedMulaiRealisasi) {
+      return NextResponse.json(
+        { data: null, error: { code: 'VALIDATION_ERROR', message: 'Tanggal selesai realisasi harus setelah tanggal mulai realisasi' } },
+        { status: 400 }
+      )
+    }
+
     // Auto-set progress_pct based on status
     const updates = { ...parsed.data }
     if (updates.status === 'selesai') updates.progress_pct = 100

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin } from '@/lib/auth-helpers'
 import { createActivitySchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
+import { runCpmForLocation } from '@/lib/cpm-runner'
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -68,7 +69,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (error || !activity) return serverError()
 
-    // TODO Week 4: trigger CPM via runCpmForLocation(locationId)
+    const { data: phase } = await supabase.from('phases').select('location_id').eq('id', params.id).single()
+    if (phase) {
+      await runCpmForLocation(supabase, phase.location_id, { id: user.id, email: profile.email, full_name: profile.full_name })
+    }
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,

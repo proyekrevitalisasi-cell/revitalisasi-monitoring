@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin, notFound } from '@/lib/auth-helpers'
 import { updateActivitySchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
+import { extractLocationId, getActivityLocationId, runCpmForLocation } from '@/lib/cpm-runner'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -59,7 +60,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (error) return serverError()
 
-    // TODO Week 4: trigger CPM via runCpmForLocation(locationId) if dates changed
+    const datesChanged =
+      parsed.data.tanggal_mulai_rencana !== undefined || parsed.data.tanggal_selesai_rencana !== undefined
+    if (datesChanged) {
+      const locationId = await getActivityLocationId(supabase, params.id)
+      if (locationId) {
+        await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+      }
+    }
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
@@ -82,7 +90,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     const { data: current } = await supabase
       .from('activities')
-      .select('id, kegiatan, phase_id')
+      .select('id, kegiatan, phase_id, phases(location_id)')
       .eq('id', params.id)
       .single()
     if (!current) return notFound()
@@ -106,10 +114,14 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       )
     }
 
+    const locationId = extractLocationId(current.phases as { location_id: string } | { location_id: string }[] | null)
+
     const { error } = await supabase.from('activities').delete().eq('id', params.id)
     if (error) return serverError()
 
-    // TODO Week 4: trigger CPM via runCpmForLocation(locationId)
+    if (locationId) {
+      await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+    }
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,

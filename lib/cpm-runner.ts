@@ -32,7 +32,14 @@ export function extractLocationId(phases: PhaseEmbed): string | null {
 }
 
 export async function getActivityLocationId(supabase: SupabaseClient, activityId: string): Promise<string | null> {
-  const { data } = await supabase.from('activities').select('phases(location_id)').eq('id', activityId).single()
+  const { data, error } = await supabase.from('activities').select('phases(location_id)').eq('id', activityId).single()
+  if (error) {
+    // A silently-swallowed error here (e.g. a missing/renamed column) would
+    // make CPM appear to succeed while quietly doing nothing — throw so it
+    // surfaces as a 500 through the calling route's existing try/catch,
+    // instead of a no-op that looks identical to "nothing to recalculate".
+    throw new Error(`getActivityLocationId: failed to load activity ${activityId}: ${error.message}`)
+  }
   if (!data) return null
   return extractLocationId(data.phases as PhaseEmbed)
 }
@@ -58,14 +65,28 @@ export async function runCpmForLocation(
   }
   if (!location || !location.project_start_date) return empty
 
-  const { data: phases } = await supabase.from('phases').select('id').eq('location_id', locationId)
+  const { data: phases, error: phasesError } = await supabase.from('phases').select('id').eq('location_id', locationId)
+  if (phasesError) {
+    // A silently-swallowed error here (e.g. a missing/renamed column) would
+    // make CPM appear to succeed while quietly doing nothing — throw so it
+    // surfaces as a 500 through the calling route's existing try/catch,
+    // instead of a no-op that looks identical to "nothing to recalculate".
+    throw new Error(`runCpmForLocation: failed to load phases for location ${locationId}: ${phasesError.message}`)
+  }
   const phaseIds = (phases ?? []).map((p: { id: string }) => p.id)
   if (phaseIds.length === 0) return empty
 
-  const { data: activityRows } = await supabase
+  const { data: activityRows, error: activitiesError } = await supabase
     .from('activities')
     .select('id, tanggal_mulai_rencana, tanggal_selesai_rencana, date_locked')
     .in('phase_id', phaseIds)
+  if (activitiesError) {
+    // A silently-swallowed error here (e.g. a missing/renamed column) would
+    // make CPM appear to succeed while quietly doing nothing — throw so it
+    // surfaces as a 500 through the calling route's existing try/catch,
+    // instead of a no-op that looks identical to "nothing to recalculate".
+    throw new Error(`runCpmForLocation: failed to load activities for location ${locationId}: ${activitiesError.message}`)
+  }
   const activities = (activityRows ?? []) as Array<{
     id: string
     tanggal_mulai_rencana: string
@@ -75,12 +96,26 @@ export async function runCpmForLocation(
   if (activities.length === 0) return empty
   const activityIds = activities.map((a) => a.id)
 
-  const { data: depRows } = await supabase
+  const { data: depRows, error: depRowsError } = await supabase
     .from('activity_dependencies')
     .select('predecessor_id, successor_id, dep_type, lag_days')
     .in('predecessor_id', activityIds)
+  if (depRowsError) {
+    // A silently-swallowed error here would make every activity look like it
+    // has no dependencies, resetting all unlocked activities to ES=0 and
+    // writing those wrong dates to the database — throw instead so it
+    // surfaces as a 500 through the calling route's existing try/catch.
+    throw new Error(`runCpmForLocation: failed to load dependencies for location ${locationId}: ${depRowsError.message}`)
+  }
 
-  const { data: holidayRows } = await supabase.from('work_calendar').select('holiday_date')
+  const { data: holidayRows, error: holidayRowsError } = await supabase.from('work_calendar').select('holiday_date')
+  if (holidayRowsError) {
+    // A silently-swallowed error here would make durations and date
+    // conversions be computed as if no holidays exist, writing wrong dates
+    // to the database — throw instead so it surfaces as a 500 through the
+    // calling route's existing try/catch.
+    throw new Error(`runCpmForLocation: failed to load work_calendar holidays: ${holidayRowsError.message}`)
+  }
   const holidays = (holidayRows ?? []).map((h: { holiday_date: string }) => new Date(h.holiday_date))
 
   const projectStart = new Date(location.project_start_date)

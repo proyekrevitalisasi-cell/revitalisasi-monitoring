@@ -86,9 +86,24 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     void id
     void direction
   }, [])
-  const handleToggleLock = useCallback((id: string) => {
-    void id
-  }, [])
+  const handleToggleLock = useCallback(
+    async (id: string) => {
+      setRowStatus(id, 'saving')
+      try {
+        const res = await fetch(`/api/activities/${id}/lock`, { method: 'PATCH' })
+        const json = await res.json()
+        if (!res.ok || json.error) throw new Error(json.error?.message ?? 'Gagal mengubah kunci tanggal')
+        const dateLocked = json.data.date_locked as boolean
+        setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, date_locked: dateLocked } : a)))
+        savedSnapshots.current[id] = { ...savedSnapshots.current[id], date_locked: dateLocked }
+        setRowStatus(id, 'saved')
+      } catch (err) {
+        setRowStatus(id, 'error')
+        toast.error(err instanceof Error ? err.message : 'Gagal mengubah kunci tanggal')
+      }
+    },
+    [setRowStatus]
+  )
 
   const sortedActivities = [...activities].sort((a, b) => a.display_order - b.display_order)
 

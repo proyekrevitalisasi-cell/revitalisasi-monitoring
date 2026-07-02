@@ -1,28 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin } from '@/lib/auth-helpers'
-import { insertAuditLog } from '@/lib/audit'
+import { runCpmForLocation } from '@/lib/cpm-runner'
 
 export async function POST(_request: NextRequest, { params }: { params: { locationId: string } }) {
   try {
-    const { user, profile } = await getSession()
+    const { user, profile, supabase } = await getSession()
     if (!user || !profile) return unauthorized()
     if (!isAdmin(profile.role)) return forbidden()
 
-    // TODO Week 4: implement full CPM recalculate
-    // For now, return stub response
-
-    await insertAuditLog({
-      userId: user.id,
-      userEmail: profile.email,
-      userName: profile.full_name,
-      action: 'RECALCULATE',
-      entityType: 'locations',
-      entityId: params.locationId,
-      entityDescription: 'CPM recalculate (stub — Week 4)',
+    const result = await runCpmForLocation(supabase, params.locationId, {
+      id: user.id,
+      email: profile.email,
+      full_name: profile.full_name,
     })
 
+    if (result.hasCycle) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: {
+            code: 'CYCLE_DETECTED',
+            message: 'Tidak dapat menghitung CPM: siklus terdeteksi pada data dependensi',
+            cycleIds: result.cycleIds,
+          },
+        },
+        { status: 422 }
+      )
+    }
+
     return NextResponse.json({
-      data: { updatedCount: 0, criticalPath: [] },
+      data: { updatedCount: result.updatedActivities.length, criticalPath: result.criticalPath },
       error: null,
     })
   } catch {

@@ -8,9 +8,13 @@ const VALID_PHASE_NUMBERS = ['1', '2', '3', '4']
 export default async function FasePage({
   params,
 }: {
-  params: { locationCode: string; phase: string }
+  params: { locationCode: string; faseSlug: string }
 }) {
-  if (!VALID_PHASE_NUMBERS.includes(params.phase)) notFound()
+  // Next.js App Router dynamic segments must occupy the whole folder name —
+  // a hybrid "fase-[phase]" folder does not populate params.phase. This
+  // folder is "[faseSlug]" instead, and the "fase-" prefix is stripped here.
+  const phaseNumber = params.faseSlug.replace(/^fase-/, '')
+  if (!VALID_PHASE_NUMBERS.includes(phaseNumber)) notFound()
 
   const supabase = createClient()
   const { profile } = await getSession()
@@ -25,7 +29,7 @@ export default async function FasePage({
 
   if (!location) notFound()
 
-  const phaseCode = `F${params.phase}`
+  const phaseCode = `F${phaseNumber}`
   const { data: phase } = await supabase
     .from('phases')
     .select(`

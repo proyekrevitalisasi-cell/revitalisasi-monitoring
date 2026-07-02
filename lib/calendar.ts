@@ -1,4 +1,4 @@
-import { addDays, isSameDay, isWeekend } from 'date-fns'
+import { addDays, isSameDay, isWeekend, subDays } from 'date-fns'
 
 function isHoliday(date: Date, holidays: Date[]): boolean {
   return holidays.some((h) => isSameDay(h, date))
@@ -36,4 +36,14 @@ export function workingDaysBetween(start: Date, end: Date, holidays: Date[]): nu
     current = addDays(current, 1)
   }
   return count
+}
+
+/**
+ * Inclusive working-day count from mulai to selesai. Mirrors the inverse of
+ * lib/templates.ts's `addWorkingDays(mulai, durationWorkingDays - 1, holidays)`.
+ */
+export function computeDurasiHK(mulai: string, selesai: string, holidays: Date[]): number {
+  const start = subDays(new Date(mulai), 1)
+  const end = new Date(selesai)
+  return workingDaysBetween(start, end, holidays)
 }

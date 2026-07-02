@@ -151,7 +151,7 @@ describe('date conversion', () => {
     expect(result.toISOString().slice(0, 10)).toBe('2026-07-07')
   })
 
-  it.skip('round-trips with computeDurasiHK: a known mulai/selesai pair produces the same duration and reconstructs the same selesai', () => {
+  it('round-trips with computeDurasiHK: a known mulai/selesai pair produces the same duration and reconstructs the same selesai', () => {
     const projectStart = new Date('2026-07-01')
     const mulai = '2026-07-01'
     const selesai = '2026-07-07' // 5 working days inclusive (Wed-Tue, skipping weekend)

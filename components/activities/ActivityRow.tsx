@@ -27,6 +27,7 @@ interface ActivityRowProps {
   holidays: string[]
   isAdmin: boolean
   saveStatus: SaveStatus
+  isMoving: boolean
   onFieldChange: (id: string, changes: Partial<Activity>) => void
   onMove: (id: string, direction: 'up' | 'down') => void
   onToggleLock: (id: string) => void
@@ -41,6 +42,7 @@ export function ActivityRow({
   holidays,
   isAdmin,
   saveStatus,
+  isMoving,
   onFieldChange,
   onMove,
   onToggleLock,
@@ -79,7 +81,7 @@ export function ActivityRow({
             <button
               type="button"
               onClick={() => onMove(activity.id, 'up')}
-              disabled={isFirst}
+              disabled={isFirst || isMoving}
               className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
             >
               ▲
@@ -87,7 +89,7 @@ export function ActivityRow({
             <button
               type="button"
               onClick={() => onMove(activity.id, 'down')}
-              disabled={isLast}
+              disabled={isLast || isMoving}
               className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
             >
               ▼

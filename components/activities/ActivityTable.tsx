@@ -20,6 +20,7 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
   void phaseId // reserved for Task 7-8 (reorder/lock persistence); not yet used in this task
   const [activities, setActivities] = useState<Activity[]>(initialActivities)
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({})
+  const [movingIds, setMovingIds] = useState<Set<string>>(new Set())
   const pendingChanges = useRef<Record<string, Partial<Activity>>>({})
   const savedSnapshots = useRef<Record<string, Activity>>(
     Object.fromEntries(initialActivities.map((a) => [a.id, a]))
@@ -90,6 +91,10 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
 
       const current = sorted[currentIndex]
       const target = sorted[targetIndex]
+      if (movingIds.has(current.id) || movingIds.has(target.id)) return
+
+      setMovingIds((prev) => new Set(prev).add(current.id).add(target.id))
+
       const swappedOrders: Record<string, number> = {
         [current.id]: target.display_order,
         [target.id]: current.display_order,
@@ -121,9 +126,16 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
           })
         )
         toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan')
+      } finally {
+        setMovingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(current.id)
+          next.delete(target.id)
+          return next
+        })
       }
     },
-    [activities]
+    [activities, movingIds]
   )
   const handleToggleLock = useCallback(
     async (id: string) => {
@@ -186,6 +198,7 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
               holidays={holidays}
               isAdmin={isAdmin}
               saveStatus={saveStatuses[activity.id] ?? 'idle'}
+              isMoving={movingIds.has(activity.id)}
               onFieldChange={handleFieldChange}
               onMove={handleMove}
               onToggleLock={handleToggleLock}

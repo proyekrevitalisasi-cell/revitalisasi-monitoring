@@ -43,14 +43,17 @@ export async function POST(request: NextRequest) {
     }
     const locationId = predecessorLocationId
 
-    const { data: phaseRows } = await supabase.from('phases').select('id').eq('location_id', locationId)
+    const { data: phaseRows, error: phaseError } = await supabase.from('phases').select('id').eq('location_id', locationId)
+    if (phaseError) return serverError()
     const phaseIds = (phaseRows ?? []).map((p: { id: string }) => p.id)
-    const { data: activityRows } = await supabase.from('activities').select('id').in('phase_id', phaseIds)
+    const { data: activityRows, error: activityError } = await supabase.from('activities').select('id').in('phase_id', phaseIds)
+    if (activityError) return serverError()
     const activityIds = (activityRows ?? []).map((a: { id: string }) => a.id)
-    const { data: existingDepRows } = await supabase
+    const { data: existingDepRows, error: existingDepError } = await supabase
       .from('activity_dependencies')
       .select('predecessor_id, successor_id, dep_type, lag_days')
       .in('predecessor_id', activityIds)
+    if (existingDepError) return serverError()
 
     const hypotheticalDeps: CpmDependency[] = [
       ...(existingDepRows ?? []).map((d: { predecessor_id: string; successor_id: string; dep_type: DepType; lag_days: number }) => ({

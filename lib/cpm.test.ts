@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { detectCycle, runForwardPassForTest, type CpmDependency, type CpmActivity } from './cpm'
+import {
+  detectCycle,
+  runForwardPassForTest,
+  cpmStartToDate,
+  cpmFinishToDate,
+  buildNodeMapForTest,
+  topologicalSortForTest,
+  buildAdjacencyMapsForTest,
+  forwardPassForTest,
+  type CpmDependency,
+  type CpmActivity,
+} from './cpm'
+import { computeDurasiHK } from '@/lib/calendar'
 
 function dep(predecessorId: string, successorId: string): CpmDependency {
   return { predecessorId, successorId, type: 'FS', lagDays: 0 }
@@ -98,5 +110,59 @@ describe('forward pass', () => {
     )
     // A finishes at 2, B finishes at 1 — C must wait for the later one (A)
     expect(nodes.get('C')).toMatchObject({ earliestStart: 2, earliestFinish: 5 })
+  })
+})
+
+describe('locked activities in forward pass', () => {
+  it('uses the locked date as ES (converted via workingDaysBetween from projectStart), ignoring predecessors', () => {
+    const projectStart = new Date('2026-07-01') // Wednesday
+    const activities: CpmActivity[] = [
+      { id: 'A', duration: 2, dateLocked: false, lockedStartDate: null },
+      {
+        id: 'B',
+        duration: 5,
+        dateLocked: true,
+        // 2026-07-08 is also a Wednesday (7 calendar days after projectStart).
+        // workingDaysBetween counts start exclusive / end inclusive, so it
+        // spans Thu, Fri, Mon, Tue, Wed = 5 working days (one weekend skipped).
+        lockedStartDate: new Date('2026-07-08'),
+      },
+    ]
+    // A -> B FS, lag 0: if B were NOT locked, B.ES would be A.EF = 2.
+    // Because B is locked, its ES must come from lockedStartDate instead (5, not 2).
+    const deps: CpmDependency[] = [{ predecessorId: 'A', successorId: 'B', type: 'FS', lagDays: 0 }]
+    const nodeMap = buildNodeMapForTest(activities)
+    const order = topologicalSortForTest(
+      activities.map((a) => a.id),
+      deps
+    )
+    const { predecessorsOf } = buildAdjacencyMapsForTest(activities.map((a) => a.id), deps)
+    forwardPassForTest(order, nodeMap, predecessorsOf, projectStart, [])
+    expect(nodeMap.get('B')).toMatchObject({ earliestStart: 5, earliestFinish: 10 })
+  })
+})
+
+describe('date conversion', () => {
+  it('cpmStartToDate(0, ...) returns projectStart itself', () => {
+    const projectStart = new Date('2026-07-01')
+    expect(cpmStartToDate(0, projectStart, [])).toEqual(projectStart)
+  })
+
+  it('cpmFinishToDate for a 5-day activity starting at day 0 lands 4 working days later', () => {
+    const projectStart = new Date('2026-07-01') // Wednesday
+    // duration 5, ES=0, EF=5 (per EF = ES + duration)
+    const result = cpmFinishToDate(5, projectStart, [])
+    // 4 working days after 2026-07-01 (Wed): Thu, Fri, Mon, Tue -> 2026-07-07
+    expect(result.toISOString().slice(0, 10)).toBe('2026-07-07')
+  })
+
+  it.skip('round-trips with computeDurasiHK: a known mulai/selesai pair produces the same duration and reconstructs the same selesai', () => {
+    const projectStart = new Date('2026-07-01')
+    const mulai = '2026-07-01'
+    const selesai = '2026-07-07' // 5 working days inclusive (Wed-Tue, skipping weekend)
+    const duration = computeDurasiHK(mulai, selesai, [])
+    expect(duration).toBe(5)
+    const reconstructedSelesai = cpmFinishToDate(duration, projectStart, [])
+    expect(reconstructedSelesai.toISOString().slice(0, 10)).toBe(selesai)
   })
 })

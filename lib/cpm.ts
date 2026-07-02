@@ -1,4 +1,4 @@
-import { workingDaysBetween } from '@/lib/calendar'
+import { addWorkingDays, workingDaysBetween } from '@/lib/calendar'
 
 export type DepType = 'FS' | 'SS' | 'FF' | 'SF'
 
@@ -193,3 +193,18 @@ export function runForwardPassForTest(
   forwardPass(order, nodeMap, predecessorsOf, new Date('2026-01-01'), [])
   return nodeMap
 }
+
+export function cpmStartToDate(earliestStart: number, projectStart: Date, holidays: Date[]): Date {
+  return addWorkingDays(projectStart, earliestStart, holidays)
+}
+
+export function cpmFinishToDate(earliestFinish: number, projectStart: Date, holidays: Date[]): Date {
+  return addWorkingDays(projectStart, earliestFinish - 1, holidays)
+}
+
+// Temporary test-only exports, same lifecycle as runForwardPassForTest —
+// removed in Task 5 once runCpm supersedes them.
+export const buildNodeMapForTest = buildNodeMap
+export const topologicalSortForTest = topologicalSort
+export const buildAdjacencyMapsForTest = buildAdjacencyMaps
+export const forwardPassForTest = forwardPass

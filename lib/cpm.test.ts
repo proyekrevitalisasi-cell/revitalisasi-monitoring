@@ -222,3 +222,33 @@ describe('runCpm — full integration', () => {
     expect(result.nodes.get('SHORT')).toMatchObject({ isCritical: false, totalFloat: 8 })
   })
 })
+
+describe('performance', () => {
+  it('computes CPM for 60 activities and 80 dependencies in under 200ms', () => {
+    const activities: CpmActivity[] = []
+    for (let i = 0; i < 60; i++) {
+      activities.push({ id: `A${i}`, duration: (i % 5) + 1, dateLocked: false, lockedStartDate: null })
+    }
+    const dependencies: CpmDependency[] = []
+    let depCount = 0
+    for (let i = 0; i < 59 && depCount < 80; i++) {
+      dependencies.push({ predecessorId: `A${i}`, successorId: `A${i + 1}`, type: 'FS', lagDays: 0 })
+      depCount++
+    }
+    // Add extra cross-links (skip-ahead edges) to reach 80 total, without creating a cycle
+    for (let i = 0; i < 60 && depCount < 80; i += 3) {
+      const target = i + 2
+      if (target < 60) {
+        dependencies.push({ predecessorId: `A${i}`, successorId: `A${target}`, type: 'FS', lagDays: 0 })
+        depCount++
+      }
+    }
+
+    const start = performance.now()
+    const result = runCpm(activities, dependencies, new Date('2026-01-01'), [])
+    const elapsed = performance.now() - start
+
+    expect(result.hasCycle).toBe(false)
+    expect(elapsed).toBeLessThan(200)
+  })
+})

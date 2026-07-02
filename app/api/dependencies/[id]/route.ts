@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin, notFound } from '@/lib/auth-helpers'
 import { updateDependencySchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
+import { getActivityLocationId, runCpmForLocation } from '@/lib/cpm-runner'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -34,7 +35,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (error) return serverError()
 
-    // TODO Week 4: trigger CPM via runCpmForLocation(locationId)
+    const locationId = await getActivityLocationId(supabase, current.predecessor_id)
+    if (locationId) {
+      await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+    }
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
@@ -65,7 +69,10 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const { error } = await supabase.from('activity_dependencies').delete().eq('id', params.id)
     if (error) return serverError()
 
-    // TODO Week 4: trigger CPM via runCpmForLocation(locationId)
+    const locationId = await getActivityLocationId(supabase, current.predecessor_id)
+    if (locationId) {
+      await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+    }
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,

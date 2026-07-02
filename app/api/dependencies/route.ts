@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin } from '@/lib/auth-helpers'
 import { createDependencySchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
+import { getActivityLocationId, runCpmForLocation } from '@/lib/cpm-runner'
+import { detectCycle, type CpmDependency, type DepType } from '@/lib/cpm'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +27,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO Week 4: detect cycles before insert using DFS on full dependency graph
+    const predecessorLocationId = await getActivityLocationId(supabase, parsed.data.predecessor_id)
+    const successorLocationId = await getActivityLocationId(supabase, parsed.data.successor_id)
+    if (!predecessorLocationId || !successorLocationId) {
+      return NextResponse.json(
+        { data: null, error: { code: 'VALIDATION_ERROR', message: 'Kegiatan predecessor atau successor tidak ditemukan' } },
+        { status: 400 }
+      )
+    }
+    if (predecessorLocationId !== successorLocationId) {
+      return NextResponse.json(
+        { data: null, error: { code: 'VALIDATION_ERROR', message: 'Predecessor dan successor harus berada di lokasi yang sama' } },
+        { status: 400 }
+      )
+    }
+    const locationId = predecessorLocationId
+
+    const { data: phaseRows } = await supabase.from('phases').select('id').eq('location_id', locationId)
+    const phaseIds = (phaseRows ?? []).map((p: { id: string }) => p.id)
+    const { data: activityRows } = await supabase.from('activities').select('id').in('phase_id', phaseIds)
+    const activityIds = (activityRows ?? []).map((a: { id: string }) => a.id)
+    const { data: existingDepRows } = await supabase
+      .from('activity_dependencies')
+      .select('predecessor_id, successor_id, dep_type, lag_days')
+      .in('predecessor_id', activityIds)
+
+    const hypotheticalDeps: CpmDependency[] = [
+      ...(existingDepRows ?? []).map((d: { predecessor_id: string; successor_id: string; dep_type: DepType; lag_days: number }) => ({
+        predecessorId: d.predecessor_id,
+        successorId: d.successor_id,
+        type: d.dep_type,
+        lagDays: d.lag_days,
+      })),
+      {
+        predecessorId: parsed.data.predecessor_id,
+        successorId: parsed.data.successor_id,
+        type: parsed.data.dep_type,
+        lagDays: parsed.data.lag_days,
+      },
+    ]
+    const cycleCheck = detectCycle(activityIds, hypotheticalDeps)
+    if (cycleCheck.hasCycle) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: {
+            code: 'CYCLE_DETECTED',
+            message: 'Dependensi ini akan menciptakan siklus (circular dependency)',
+            cycleIds: cycleCheck.cycleIds,
+          },
+        },
+        { status: 422 }
+      )
+    }
 
     const { data: dep, error } = await supabase
       .from('activity_dependencies')
@@ -38,7 +92,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: null, error: { code: 'CREATE_ERROR', message: msg } }, { status: 400 })
     }
 
-    // TODO Week 4: trigger CPM via runCpmForLocation(locationId)
+    await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,

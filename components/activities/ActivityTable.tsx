@@ -81,11 +81,50 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     [debouncedFlush]
   )
 
-  // Wired to real reorder/lock logic in Tasks 7-8; no-op placeholders keep this task self-contained.
-  const handleMove = useCallback((id: string, direction: 'up' | 'down') => {
-    void id
-    void direction
-  }, [])
+  const handleMove = useCallback(
+    async (id: string, direction: 'up' | 'down') => {
+      const sorted = [...activities].sort((a, b) => a.display_order - b.display_order)
+      const currentIndex = sorted.findIndex((a) => a.id === id)
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+      if (currentIndex === -1 || targetIndex < 0 || targetIndex >= sorted.length) return
+
+      const current = sorted[currentIndex]
+      const target = sorted[targetIndex]
+      const swappedOrders: Record<string, number> = {
+        [current.id]: target.display_order,
+        [target.id]: current.display_order,
+      }
+
+      setActivities((prev) =>
+        prev.map((a) => (a.id in swappedOrders ? { ...a, display_order: swappedOrders[a.id] } : a))
+      )
+
+      try {
+        const res = await fetch('/api/activities/reorder', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [
+              { id: current.id, display_order: target.display_order },
+              { id: target.id, display_order: current.display_order },
+            ],
+          }),
+        })
+        const json = await res.json()
+        if (!res.ok || json.error) throw new Error(json.error?.message ?? 'Gagal mengubah urutan')
+      } catch (err) {
+        setActivities((prev) =>
+          prev.map((a) => {
+            if (a.id === current.id) return { ...a, display_order: current.display_order }
+            if (a.id === target.id) return { ...a, display_order: target.display_order }
+            return a
+          })
+        )
+        toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan')
+      }
+    },
+    [activities]
+  )
   const handleToggleLock = useCallback(
     async (id: string) => {
       setRowStatus(id, 'saving')

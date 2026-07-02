@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin, notFound } from '@/lib/auth-helpers'
 import { insertAuditLog } from '@/lib/audit'
+import { runCpmForAllActiveLocations } from '@/lib/cpm-runner'
 
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -20,7 +21,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       entityDescription: `Hapus hari libur: ${current.name} (${current.holiday_date})`,
     })
 
-    // TODO Week 4: trigger CPM recalculate for ALL active locations after calendar change
+    await runCpmForAllActiveLocations(supabase, { id: user.id, email: profile.email, full_name: profile.full_name })
 
     return NextResponse.json({ data: { id: params.id }, error: null })
   } catch {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin } from '@/lib/auth-helpers'
 import { createWorkCalendarSchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
+import { runCpmForAllActiveLocations } from '@/lib/cpm-runner'
 
 export async function GET() {
   try {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       newValue: parsed.data,
     })
 
-    // TODO Week 4: trigger CPM recalculate for ALL active locations after calendar change
+    await runCpmForAllActiveLocations(supabase, { id: user.id, email: profile.email, full_name: profile.full_name })
 
     return NextResponse.json({ data: holiday, error: null }, { status: 201 })
   } catch {

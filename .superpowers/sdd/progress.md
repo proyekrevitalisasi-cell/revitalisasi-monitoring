@@ -149,3 +149,37 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Task 9: complete (commit f77fddc, review clean; two minor design gaps traced to the plan's own code, not implementer deviations: (1) SVG <g> tooltip trigger has no tabIndex so arrow tooltips are mouse-only, not keyboard-reachable; (2) arrowhead marker fill is hardcoded gray even when the line itself turns critical-red. Both accepted for now, candidates for a follow-up polish task)
 - Task 10: complete (commit 81c5e11, review clean)
 - Task 11: complete (commit 7543164, review clean). Found and fixed two real integration bugs live via Playwright, only catchable once the full Gantt tree actually rendered in a browser: (1) app/layout.tsx never had a <TooltipProvider> anywhere in the app -- every Tooltip-using component (Tasks 8/9) would have crashed the page on load; added it at the root layout. (2) GanttArrows.tsx's dependency-arrow tooltip was anchored on an SVG <g>, which floating-ui/Radix cannot position (mounts with correct text but a {0,0,0,0} box, permanently invisible) -- fixed by keeping the <svg> purely visual and adding a sibling absolutely-positioned HTML <div> per dependency (same x1/y1/x2/y2 math, shared not duplicated) as the actual tooltip trigger. Both fixes independently re-verified by the reviewer against the diff (confirmed TooltipProvider was genuinely absent repo-wide before this change; confirmed the arrow math is unchanged and shared between the visual path and the new hit-target). Full E2E checklist (bars, all 3 toggles, both tooltip types, milestones, Minggu weekend shading) confirmed via real headless-Chromium Playwright pass against location CPMTEST (26 activities, 6 milestones, 1 dependency, 1 critical activity). npm test 46/46, npm run build clean, npm run lint clean.
+- Task 12: COMPLETE via real headless-Chromium Playwright E2E. Covered the one scenario Task 11
+  could not (no location had an active baseline yet): created a disposable test location (`T12BLF`,
+  4 phases / 27 activities from the standard template), created a real baseline via
+  `POST /api/locations/{id}/baselines`, then forced a known deviation by PATCHing one activity
+  4 working days later. That PATCH needed `date_locked: true` in the same request — without it,
+  the PATCH's own CPM recalculation (`runCpmForLocation`, triggered because dates changed) would
+  have silently reset the activity's start straight back to the project start date before the
+  response even returned, since this location's template creates no dependencies between
+  activities and an unlocked node with no predecessor always resolves to `earliestStart = 0`. Not a
+  Week 6 bug -- confirmed this is pre-existing Week 4 CPM engine behavior (standard CPM handling of
+  unconstrained activities), already visible on CPMTEST itself (25 of its 26 activities now sit at
+  `tanggal_mulai_rencana = 2026-07-01`, the project start, from earlier weeks' CPM runs) -- noted
+  here for future weeks' awareness, not fixed (out of this task's scope). With that lock in place,
+  the real-browser pass on `/dashboard/T12BLF/timeline` confirmed everything Task 11 couldn't:
+  exactly 2 stacked bars (gray baseline behind, blue rencana shifted right of it) for the edited
+  activity; hovering the rencana bar shows `"Baseline: 2026-07-10 (deviasi +4 hari kerja)"` --
+  correct sign (later than baseline is positive) and exact expected magnitude; unchecking
+  "Tampilkan Baseline" dropped the page's bar-trigger count from 48 to 27 (all 21 non-milestone
+  activities' baseline bars disappearing, rencana bars staying), re-checking restored 48; the F1-F4
+  phase legend rendered throughout. One suspicious console hydration warning appeared on the very
+  first attempt (`Extra attributes from the server: %s%s style` on GanttControls' checkbox) --
+  investigated rather than dismissed: reproduced the exact same flow three more times (fresh
+  context, fresh dev-server restart, cold route compile) with zero recurrences, traced the actual
+  cause to writing scratch `.js` files into `.superpowers/sdd/` while the Next.js dev server's
+  file watcher was live (it watches the whole project tree, not just app/components), which
+  triggered a Fast-Refresh full reload racing the in-flight Playwright navigation -- confirmed
+  false alarm via one final completely clean run (dev server untouched by any file writes for its
+  duration) showing 0 console errors. No product code changed by this task. Cleaned up: deactivated
+  `T12BLF` (and an earlier same-purpose location `T12BL` from before the locking issue was
+  understood) via `DELETE /api/locations/{id}` as `superadmin@perumnas.co.id` -- that route
+  requires `super_admin`, and the seeded `admin@perumnas.co.id` account used throughout this task
+  is role `admin`, so its own DELETE attempt correctly 403'd first. npm test: 46/46 passing (no new
+  tests, none expected). npm run build: clean, all 17 routes generated.
+- Week 6 implementation COMPLETE (2026-07-03)

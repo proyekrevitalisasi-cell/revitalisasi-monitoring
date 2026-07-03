@@ -11,11 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import type { CpmSummary } from '@/lib/types'
 
 interface DeleteActivityDialogProps {
   activityId: string
   activityName: string
-  onDeleted: (id: string) => void
+  onDeleted: (id: string, cpm: CpmSummary | null) => void
 }
 
 export function DeleteActivityDialog({ activityId, activityName, onDeleted }: DeleteActivityDialogProps) {
@@ -33,7 +34,8 @@ export function DeleteActivityDialog({ activityId, activityName, onDeleted }: De
         setErrorMessage(json.error?.message ?? 'Gagal menghapus kegiatan')
         return
       }
-      onDeleted(activityId)
+      const { cpm } = json.data as { id: string; cpm: CpmSummary | null }
+      onDeleted(activityId, cpm)
       toast.success('Kegiatan dihapus')
       setOpen(false)
     } catch {

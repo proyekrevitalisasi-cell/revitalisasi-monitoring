@@ -11,7 +11,7 @@ import { DeleteActivityDialog } from './DeleteActivityDialog'
 import { computeDurasiHK } from '@/lib/calendar'
 import { validateRencanaDates, validateRealisasiDates } from '@/lib/activity-helpers'
 import { cn } from '@/lib/utils'
-import type { Activity } from '@/lib/types'
+import type { Activity, CpmSummary } from '@/lib/types'
 
 const STATUS_LABELS: Record<Activity['status'], string> = {
   belum_mulai: 'Belum Mulai',
@@ -33,7 +33,7 @@ interface ActivityRowProps {
   onFieldChange: (id: string, changes: Partial<Activity>) => void
   onMove: (id: string, direction: 'up' | 'down') => void
   onToggleLock: (id: string) => void
-  onDeleted: (id: string) => void
+  onDeleted: (id: string, cpm: CpmSummary | null) => void
 }
 
 export function ActivityRow({

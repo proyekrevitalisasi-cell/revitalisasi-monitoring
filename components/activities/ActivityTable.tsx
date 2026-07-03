@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components
 import { ActivityRow } from './ActivityRow'
 import { AddActivityDialog } from './AddActivityDialog'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
-import type { Activity } from '@/lib/types'
+import type { Activity, CpmSummary } from '@/lib/types'
 import type { SaveStatus } from './SaveStatusBadge'
 
 interface ActivityTableProps {
@@ -38,6 +38,19 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     }
   }, [])
 
+  const applyCpmResult = useCallback((cpm: CpmSummary | null) => {
+    if (!cpm) return
+    setActivities((prev) =>
+      prev.map((a) => {
+        const match = cpm.updatedActivities.find((u) => u.id === a.id)
+        return match ? { ...a, ...match } : a
+      })
+    )
+    if (cpm.shiftedCount > 0) {
+      toast.info(`${cpm.shiftedCount} kegiatan ikut disesuaikan jadwalnya`)
+    }
+  }, [])
+
   const flushSave = useCallback(
     async (id: string) => {
       const changes = pendingChanges.current[id]
@@ -55,10 +68,11 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
         if (!res.ok || json.error) {
           throw new Error(json.error?.message ?? 'Gagal menyimpan perubahan')
         }
-        const updated = json.data as Activity
+        const { activity: updated, cpm } = json.data as { activity: Activity; cpm: CpmSummary | null }
         savedSnapshots.current[id] = updated
         setActivities((prev) => prev.map((a) => (a.id === id ? updated : a)))
         setRowStatus(id, 'saved')
+        applyCpmResult(cpm)
       } catch (err) {
         const snapshot = savedSnapshots.current[id]
         setActivities((prev) => prev.map((a) => (a.id === id ? snapshot : a)))
@@ -66,7 +80,7 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
         toast.error(err instanceof Error ? err.message : 'Gagal menyimpan perubahan')
       }
     },
-    [setRowStatus]
+    [setRowStatus, applyCpmResult]
   )
 
   const debouncedFlush = useDebouncedCallback((id: string) => {
@@ -87,10 +101,14 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     setActivities((prev) => [...prev, activity])
   }, [])
 
-  const handleDeleted = useCallback((id: string) => {
-    delete savedSnapshots.current[id]
-    setActivities((prev) => prev.filter((a) => a.id !== id))
-  }, [])
+  const handleDeleted = useCallback(
+    (id: string, cpm: CpmSummary | null) => {
+      delete savedSnapshots.current[id]
+      setActivities((prev) => prev.filter((a) => a.id !== id))
+      applyCpmResult(cpm)
+    },
+    [applyCpmResult]
+  )
 
   const handleMove = useCallback(
     async (id: string, direction: 'up' | 'down') => {

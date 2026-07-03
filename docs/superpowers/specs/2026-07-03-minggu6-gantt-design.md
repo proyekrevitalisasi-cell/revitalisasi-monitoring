@@ -112,11 +112,11 @@ New directory `components/gantt/`:
   entirely when the "show dependency arrows" toggle is off.
 - **`GanttTooltip.tsx`** — shared tooltip content, rendered via a new shadcn `Tooltip` primitive
   (`npx shadcn@latest add tooltip`, same pattern as adding `Tabs` in Week 5). Bar tooltip: nama,
-  PIC, tanggal rencana (mulai–selesai), tanggal baseline + deviasi (only shown when a baseline snapshot exists for this activity;
-  computed with `lib/calendar.ts`'s existing `workingDaysBetween(baselineStart, rencanaStart,
-  holidays)`, so a positive number means the plan slipped later than baseline), tanggal realisasi
-  (if present), status, float (`total_float_days`, e.g. "5 hari" or "Kritis" when 0). Arrow
-  tooltip: dependency type + lag.
+  PIC, tanggal rencana (mulai–selesai), tanggal baseline + deviasi (only shown when a baseline
+  snapshot exists for this activity; computed with `lib/gantt-layout.ts`'s new
+  `computeDeviationDays` — see below — so a positive number means the plan slipped later than
+  baseline, negative means it moved earlier), tanggal realisasi (if present), status, float
+  (`total_float_days`, e.g. "5 hari" or "Kritis" when 0). Arrow tooltip: dependency type + lag.
 
 Each component receives plain data plus the shared day-width scale as props; only `GanttChart`
 holds state, and children communicate hover events back up via callbacks — the same
@@ -145,6 +145,15 @@ export function computeDateRange(
 ): DateRange
 
 export function dateToOffset(date: Date, rangeStart: Date, dayWidth: number): number
+
+/**
+ * Signed working-day difference between a baseline date and the current
+ * (rencana) date. Positive = slipped later than baseline, negative = moved
+ * earlier. lib/calendar.ts's workingDaysBetween(start, end, holidays) only
+ * counts forward and returns 0 when start >= end, so it cannot represent
+ * "earlier than baseline" on its own — this wraps it with a direction check.
+ */
+export function computeDeviationDays(baselineDate: Date, actualDate: Date, holidays: Date[]): number
 
 export type GanttDepType = 'FS' | 'SS' | 'FF' | 'SF'
 
@@ -183,8 +192,10 @@ per PRD), and, in Minggu view only, a lighter strip shading weekend columns.
 
 `lib/gantt-layout.ts`: Vitest coverage for `computeDateRange` (no realisasi present, no baseline
 present, single activity, multiple activities with realisasi extending past rencana),
-`dateToOffset` (both dayWidth scales, a date before rangeStart), and `dependencyAnchor` (all 4
-types, exact edge pairs from the table above).
+`dateToOffset` (both dayWidth scales, a date before rangeStart), `computeDeviationDays` (rencana
+later than baseline → positive, rencana earlier than baseline → negative, exactly equal → zero,
+and a case spanning a holiday to confirm it's excluded from the count), and `dependencyAnchor`
+(all 4 types, exact edge pairs from the table above).
 
 No automated tests for the rendering components (`GanttChart`, `GanttRow`, `GanttBar`, etc.) —
 consistent with this project's convention that only pure `lib/` logic gets unit tests. Manual

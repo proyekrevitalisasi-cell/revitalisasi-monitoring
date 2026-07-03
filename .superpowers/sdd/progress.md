@@ -100,3 +100,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Base: 41e3cd9
 - Task 1: complete (commit 9332583, review clean)
 - Task 2: complete (commit 903929c, review clean; minor: implementer's own report miscounted 3 return sites as 4, code itself correct)
+- Task 3: complete (commit f31aee6, review clean)

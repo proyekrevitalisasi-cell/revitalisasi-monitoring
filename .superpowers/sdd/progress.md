@@ -93,3 +93,9 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Minor (not fixed, deferred): runCpmForAllActiveLocations's own `locations` read still unchecked — non-corrupting no-op only (loops over empty list on failure), not the write-wrong-data class. Follow-up candidate for a future week.
 - Other minor items from the first pass (migration not re-runnable via ADD COLUMN IF NOT EXISTS, buildCriticalPath returns one representative path not all parallel critical chains, UTC timezone coupling, recalculate returns 500 not 404 for unknown locationId, "batch UPDATE" wording vs N-concurrent-updates implementation): accepted as-is, no action.
 - Week 4 CPM Engine COMPLETE (2026-07-02)
+
+## Week 5
+# Plan: docs/superpowers/plans/2026-07-03-minggu5-dependensi-ui.md
+# Spec: docs/superpowers/specs/2026-07-03-minggu5-dependensi-ui-design.md
+# Base: 41e3cd9
+- Task 1: complete (commit 9332583, review clean)

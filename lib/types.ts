@@ -42,3 +42,21 @@ export interface Dependency {
   dep_type: 'FS' | 'SS' | 'FF' | 'SF'
   lag_days: number
 }
+
+export interface CpmSummary {
+  shiftedCount: number
+  hasCycle: boolean
+  criticalPath: string[]
+  updatedActivities: Array<{
+    id: string
+    tanggal_mulai_rencana: string
+    tanggal_selesai_rencana: string
+    is_on_critical_path: boolean
+  }>
+}
+
+export interface LocationActivitySummary {
+  id: string
+  kegiatan: string
+  phaseCode: string
+}

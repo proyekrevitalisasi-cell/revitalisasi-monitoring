@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { runCpm, cpmStartToDate, cpmFinishToDate, type CpmActivity, type CpmDependency } from '@/lib/cpm'
 import { computeDurasiHK } from '@/lib/calendar'
 import { insertAuditLog } from '@/lib/audit'
+import type { CpmSummary } from '@/lib/types'
 
 interface Actor {
   id: string
@@ -22,6 +23,7 @@ interface CpmRunResult {
   criticalPath: string[]
   hasCycle: boolean
   cycleIds: string[]
+  shiftedCount: number
 }
 
 type PhaseEmbed = { location_id: string } | { location_id: string }[] | null
@@ -49,7 +51,7 @@ export async function runCpmForLocation(
   locationId: string,
   actor: Actor
 ): Promise<CpmRunResult> {
-  const empty: CpmRunResult = { updatedActivities: [], criticalPath: [], hasCycle: false, cycleIds: [] }
+  const empty: CpmRunResult = { updatedActivities: [], criticalPath: [], hasCycle: false, cycleIds: [], shiftedCount: 0 }
 
   const { data: location, error: locationError } = await supabase
     .from('locations')
@@ -152,7 +154,7 @@ export async function runCpmForLocation(
       entityId: locationId,
       entityDescription: 'CPM recalculate gagal: siklus terdeteksi pada data dependensi yang sudah tersimpan',
     })
-    return { updatedActivities: [], criticalPath: [], hasCycle: true, cycleIds: result.cycleIds }
+    return { updatedActivities: [], criticalPath: [], hasCycle: true, cycleIds: result.cycleIds, shiftedCount: 0 }
   }
 
   const updateResults = await Promise.all(
@@ -207,12 +209,21 @@ export async function runCpmForLocation(
     entityDescription: `CPM recalculate: ${shiftedCount} kegiatan disesuaikan, ${result.criticalPath.length} pada jalur kritis`,
   })
 
-  return { updatedActivities, criticalPath: result.criticalPath, hasCycle: false, cycleIds: [] }
+  return { updatedActivities, criticalPath: result.criticalPath, hasCycle: false, cycleIds: [], shiftedCount }
 }
 
 export async function runCpmForAllActiveLocations(supabase: SupabaseClient, actor: Actor): Promise<void> {
   const { data: locations } = await supabase.from('locations').select('id').eq('is_active', true)
   for (const location of (locations ?? []) as Array<{ id: string }>) {
     await runCpmForLocation(supabase, location.id, actor)
+  }
+}
+
+export function toCpmSummary(result: CpmRunResult): CpmSummary {
+  return {
+    shiftedCount: result.shiftedCount,
+    hasCycle: result.hasCycle,
+    criticalPath: result.criticalPath,
+    updatedActivities: result.updatedActivities,
   }
 }

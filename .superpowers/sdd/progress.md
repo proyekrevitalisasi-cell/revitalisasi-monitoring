@@ -138,7 +138,7 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Plan: docs/superpowers/plans/2026-07-03-minggu6-gantt.md
 # Spec: docs/superpowers/specs/2026-07-03-minggu6-gantt-design.md
 # Base: bd47be1
-- Task 1: complete (commit 2d731a4, review clean; PENDING USER ACTION — run supabase/migrations/004_activities_total_float_days.sql via Supabase Dashboard SQL Editor before Task 5+ live verification)
+- Task 1: complete (commit 2d731a4, review clean; migration applied by user via Supabase Dashboard SQL Editor before Task 5 — confirmed live by every subsequent task's successful total_float_days selects/renders through Task 12)
 - Task 2: complete (commit 18171e3, review clean; TDD, 46/46 tests pass, computeDeviationDays sign convention hand-verified correct)
 - Task 3: complete (commit 359e27d, review clean)
 - Task 4: complete (commit 6f5fe2b, review clean; all 13 colors/sizing constants verified character-by-character against the validated dataviz palette)
@@ -183,3 +183,14 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
   is role `admin`, so its own DELETE attempt correctly 403'd first. npm test: 46/46 passing (no new
   tests, none expected). npm run build: clean, all 17 routes generated.
 - Week 6 implementation COMPLETE (2026-07-03)
+
+## Week 6 — FINAL WHOLE-BRANCH REVIEW
+- Reviewed range bd47be1..1fb5455 (opus). Verdict: With fixes -> fixed -> Ready to merge.
+- Confirmed clean end-to-end prop wiring across all 12 tasks (GanttChart -> GanttRow -> GanttBar/GanttMilestone, GanttChart -> GanttArrows, GanttChart -> GanttControls), highlightCritical threaded consistently everywhere it's needed, TooltipProvider fix purely additive (zero Tooltip consumers existed before this week), total_float_days consumed only where needed, and zero scope creep against the plan's "Out of scope" list (no baseline UI, no ActivityRow columns, no virtualization, no drag-editing leaked in).
+- Important (FIXED): GanttArrows.tsx's Task-11 fix for the SVG-anchored-tooltip bug had replaced the hit target with a per-dependency bounding-box <div>, which for long-spanning dependencies (predecessor/successor many rows apart) covered every row in between and swallowed those bars' own hover events -- a real regression no single-task review could see (Task 9's own dependency was between adjacent rows, too small to expose it). Fixed (commit 12246a6): dropped Radix Tooltip for arrows entirely, restored native SVG mouseenter/mouseleave on the original thin 10px invisible stroke (line-following, not bounding-box), and render the tooltip as a manually-positioned plain HTML div only while actively hovered. Verified live via Playwright with a dependency spanning ~24 rows apart: the bar in between is hoverable again, and the arrow's own tooltip still works.
+- Important (resolved as documentation-only, no code issue): the migration's manual-apply nature means code deploying before the SQL runs would break Fase/phases/CPM writes -- confirmed this fails loudly (Supabase errors), not silently, so no data-corruption risk. Corrected the stale Task 1 ledger line above (it said "PENDING" from earlier in the week; it was applied before Task 5 and confirmed live since). Recommend adding "apply migration 004" to any future deploy checklist.
+- Minor (not fixed, accepted, same as Task 9's own note): arrowhead marker stays gray even on critical-red arrows; arrow/bar tooltips are mouse-only, not keyboard-reachable. Both reasonable follow-up polish for a read-only internal dashboard.
+- Minor (not fixed, accepted): month-gridline positions can drift ~1px from bars in WIB due to GanttChart.tsx's month-cursor math using local-time Date construction while bar offsets use UTC-parsed dates -- cosmetic, single-timezone.
+- Cleanup note: two test locations created during the arrow-fix verification (T11FIXA/T11FIXB) could not be deleted with the admin test account (DELETE /api/locations requires super_admin) -- same precedent as Task 12's cleanup snag. Left inactive-but-undeleted in the dev Supabase project, no code impact.
+- npm test: 46/46 passing. npm run build: clean.
+- Week 6 Gantt 3 Lapis COMPLETE (2026-07-03)

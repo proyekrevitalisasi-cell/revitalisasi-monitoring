@@ -133,3 +133,9 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Minor (not fixed, accepted): ActivityTable's savedSnapshots can briefly hold pre-CPM dates after a shifting edit, causing a rare/transient rollback-to-stale-dates if a *subsequent* save on the same row fails — narrow, visual only, self-corrects on next successful save.
 - Minor (recommended, not applied): add a one-line comment at ActivityRow's date <Input> or in applyCpmResult documenting that live successor-row date refresh relies on uncontrolled-input dirty-flag semantics — protects against a future controlled-input refactor silently breaking live updates.
 - Week 5 Dependensi UI COMPLETE (2026-07-03)
+
+## Week 6
+# Plan: docs/superpowers/plans/2026-07-03-minggu6-gantt.md
+# Spec: docs/superpowers/specs/2026-07-03-minggu6-gantt-design.md
+# Base: bd47be1
+- Task 1: complete (commit 2d731a4, review clean; PENDING USER ACTION — run supabase/migrations/004_activities_total_float_days.sql via Supabase Dashboard SQL Editor before Task 5+ live verification)

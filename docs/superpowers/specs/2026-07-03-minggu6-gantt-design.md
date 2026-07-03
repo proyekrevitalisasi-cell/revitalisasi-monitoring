@@ -89,10 +89,14 @@ New directory `components/gantt/`:
   the overall date range and day-width scale via `lib/gantt-layout.ts`, renders `GanttControls`,
   a frozen name column down the left, a horizontally-scrollable timeline body on the right built
   from `GanttRow`s, and a `GanttArrows` SVG overlay positioned across that same body.
-- **`GanttControls.tsx`** — the toggle bar: a Bulan/Minggu segmented control (shadcn `Tabs` or a
-  simple two-button group — reuses Week 5's `Tabs` primitive) plus three independent toggle
-  switches/checkboxes for baseline, dependency arrows, and critical-path highlight.
-- **`GanttRow.tsx`** — one row: the frozen name cell (kegiatan, PIC) plus a timeline lane. If
+- **`GanttControls.tsx`** — the toggle bar: a Bulan/Minggu segmented control (reuses Week 5's
+  `Tabs` primitive) plus three independent toggle checkboxes for baseline, dependency arrows, and
+  critical-path highlight. Also renders the phase color legend (F1–F4 swatch + name) required
+  whenever ≥2 categorical colors are on screen — the dataviz skill's accessibility rule that
+  identity must never rely on color alone.
+- **`GanttRow.tsx`** — one row: the frozen name cell (kegiatan, PIC, plus a 🔴 prefix when
+  `is_on_critical_path` — reusing `ActivityRow`'s existing critical-path convention so identity
+  isn't color-only there either) plus a timeline lane. If
   `is_milestone`, renders a single `GanttMilestone` at the rencana date only — baseline/realisasi
   for a milestone activity still feed `computeDateRange` and the tooltip's deviation number, but
   don't render as a second marker this week (PRD doesn't specify a baseline-vs-rencana milestone
@@ -101,9 +105,11 @@ New directory `components/gantt/`:
   realisasi only if both realisasi dates are non-null).
 - **`GanttBar.tsx`** — one absolutely-positioned bar (`left`/`width` from `dateToOffset`). Layer
   determines base styling (baseline = thin gray, behind; rencana = phase color, full opacity;
-  realisasi = darker/hatched); `is_on_critical_path` overrides the rencana bar's color to red
-  regardless of phase. Exact color values (phase palette, critical red, baseline gray) are
-  finalized during implementation using the `dataviz` skill, not hardcoded here.
+  realisasi = same phase hue at reduced brightness); `is_on_critical_path` overrides the rencana
+  bar's color to the reserved critical-status red regardless of phase. See "Visual design" below
+  for the resolved, validated values (this app has no dark mode wired up — `darkMode: ["class"]`
+  is configured in Tailwind but nothing toggles it anywhere in the app — so this is light-mode
+  only).
 - **`GanttMilestone.tsx`** — a ♦ diamond at a single point, anchored to `tanggal_mulai_rencana`
   (milestones render as a point per PRD, not a bar with duration).
 - **`GanttArrows.tsx`** — one SVG overlay. For every dependency, draws a path between the anchor
@@ -180,6 +186,39 @@ this is the explicit rule this feature implements:
 | SS | start | start |
 | FF | finish | finish |
 | SF | start | finish |
+
+## Visual design (dataviz skill, validated)
+
+Ran the dataviz skill's procedure and its `validate_palette.js` before committing to any hex
+value (categorical six-checks: lightness band, chroma floor, CVD separation, contrast — see
+`docs/superpowers/specs/` history for the exact command). Resolved palette, light-mode only
+(this app has no active dark mode):
+
+| Role | Value | Notes |
+|---|---|---|
+| F1 rencana | `#2a78d6` (blue) | Categorical slot 1 |
+| F2 rencana | `#1baf7a` (aqua) | Categorical slot 2 — sub-3:1 text contrast; relief = the frozen name column's text label + tooltip, never color-only |
+| F3 rencana | `#eda100` (yellow) | Categorical slot 3 — same relief as F2 |
+| F4 rencana | `#008300` (green) | Categorical slot 4 |
+| Realisasi (any phase) | same phase hex, `filter: brightness(0.65)` | A darker shade of the *same* hue, not a new color and not a hatch texture — the dataviz skill treats texture as an opt-in accessibility/print channel, never a default decoration, so "warna gelap" from the PRD's mockup is implemented as shade, not the mockup's literal hatch pattern |
+| Baseline | `#c3c2b7` | Documented "Baseline / axis" chrome role |
+| Critical path (rencana bar override) | `#d03b3b` | Reserved status-critical red; always paired with text (🔴 prefix in the name cell, explicit "Jalur Kritis" line in the tooltip) — never color-alone |
+| Gridlines (day/month separators) | `#e1e0d9` | Hairline, 1px, solid |
+| Current-month column wash | `#f0efec` | |
+| Weekend column wash (Minggu view) | `#f9f9f7` | |
+| Primary / secondary / muted text | `#0b0b0b` / `#52514e` / `#898781` | |
+
+The 4-hue categorical subset (blue/aqua/yellow/green, in that fixed order) passes all hard checks;
+aqua and yellow WARN on contrast against the light surface, which obligates a relief channel —
+satisfied here because phase identity is never color-only (the frozen name column and tooltip
+always carry the activity's phase in text).
+
+**Bar marks:** each of the up-to-3 stacked layers in a row is an 8px-tall bar, 2px gap between
+stacked layers, 4px rounded corners on both ends (Gantt bars have no zero-baseline to anchor
+square against, unlike a column chart, so both ends round). No borders — the 2px surface gap is
+what separates layers, per the skill's mark spec. Each bar's hover hit-target is padded taller
+than its painted 8px so thin bars stay easy to hit, and a hovered bar lifts slightly (brightness
+increase) to show it responded, in addition to opening its tooltip.
 
 ## Month/week chrome
 

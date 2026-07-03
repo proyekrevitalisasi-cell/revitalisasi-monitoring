@@ -104,3 +104,24 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Task 4: complete (commit e0a1cdc, review clean; curl-verified: catatan-only PATCH returns cpm:null, predecessor date PATCH returns cpm.shiftedCount>0 with successor's new dates, DELETE returns {id,cpm})
 - Task 5: complete (commit 2232ff4, review clean; curl-verified POST/PATCH/DELETE new {dependency|id, cpm} shapes and unchanged 422 CYCLE_DETECTED; note: a leftover test location from verification remains in the dev Supabase DB, no code impact)
 - Task 6: complete (commits 9d84cce+f2260b2, fix: stale selectedActivityId survived a Predecessor/Successor tab switch, could silently submit a dependency in the wrong direction — resetForm() now runs on Tabs onValueChange, review clean after fix; minor accepted: depType/lagDays also cleared on tab switch, small UX cost of the safety fix)
+- Task 7: COMPLETE via real headless-Chromium (Playwright) browser E2E + curl, the first genuine
+  browser-level verification this feature has had (Tasks 4-6 were curl/code-read-through only).
+  All Step 1 scenarios passed on the live UI: badge cross-check against curl, same-phase
+  predecessor add (live badge + toast update), cross-phase add (verified after page load in the
+  other phase), cycle rejection (toast + no partial state), delete-dependency then
+  delete-now-orphan-free-activity (live cleanup, no orphaned rows), and Viewer read-only (badge
+  visible/clickable, no add form, no delete buttons). One scenario needed adaptation: the
+  duplicate-dependency check could not be driven through the real UI because
+  DependencyPanel's own "Pilih kegiatan" dropdown already filters out any activity already
+  related in the current tab/direction — a true duplicate submission is unreachable via the panel
+  as built (verified: 0 matching options once linked). Exercised the backend's own guard directly
+  via an authenticated fetch instead, confirming the existing 400 "Dependensi ini sudah ada"
+  path still works as a defense-in-depth check behind that already-preventive UI. Also
+  investigated, and ruled out as a false alarm, a suspected uncontrolled-date-input staleness bug
+  on CPM-shifted successor rows — confirmed live updates work correctly (React's defaultValue is
+  re-applied on every render for inputs the user hasn't directly typed into; only the dirtied
+  input itself is exempt). No bugs found or fixed. Cleaned up all 5 iterations of test locations
+  created during the run (deactivated via DELETE as super_admin), unlike some earlier weeks'
+  leftover test data. npm test: 31/31 passing. npm run build: clean (pre-existing Edge Runtime
+  warning from @supabase/supabase-js unrelated to this week).
+- Week 5 Dependensi UI implementation COMPLETE (2026-07-03)

@@ -21,6 +21,7 @@ export interface Activity {
   is_milestone: boolean
   is_on_critical_path: boolean
   date_locked: boolean
+  total_float_days: number
   created_at: string
   updated_at: string
 }
@@ -59,4 +60,12 @@ export interface LocationActivitySummary {
   id: string
   kegiatan: string
   phaseCode: string
+}
+
+export interface BaselineActivitySnapshot {
+  activity_id: string
+  kegiatan: string
+  tanggal_mulai_rencana: string
+  tanggal_selesai_rencana: string
+  is_milestone: boolean
 }

@@ -164,6 +164,7 @@ export async function runCpmForLocation(
 
       const updates: Record<string, unknown> = {
         is_on_critical_path: node.isCritical,
+        total_float_days: node.totalFloat,
         updated_by: actor.id,
         updated_at: new Date().toISOString(),
       }

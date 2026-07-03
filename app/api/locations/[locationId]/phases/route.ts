@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: { params: { locatio
           tanggal_mulai_rencana, tanggal_selesai_rencana,
           tanggal_mulai_realisasi, tanggal_selesai_realisasi,
           status, progress_pct, catatan, is_milestone, is_on_critical_path,
-          date_locked, created_at, updated_at
+          date_locked, total_float_days, created_at, updated_at
         )
       `)
       .eq('location_id', params.locationId)

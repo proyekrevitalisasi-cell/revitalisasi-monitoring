@@ -140,3 +140,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Base: bd47be1
 - Task 1: complete (commit 2d731a4, review clean; PENDING USER ACTION — run supabase/migrations/004_activities_total_float_days.sql via Supabase Dashboard SQL Editor before Task 5+ live verification)
 - Task 2: complete (commit 18171e3, review clean; TDD, 46/46 tests pass, computeDeviationDays sign convention hand-verified correct)
+- Task 3: complete (commit 359e27d, review clean)

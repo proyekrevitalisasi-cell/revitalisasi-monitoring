@@ -125,3 +125,11 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
   leftover test data. npm test: 31/31 passing. npm run build: clean (pre-existing Edge Runtime
   warning from @supabase/supabase-js unrelated to this week).
 - Week 5 Dependensi UI implementation COMPLETE (2026-07-03)
+
+## Week 5 — FINAL WHOLE-BRANCH REVIEW
+- Reviewed range 41e3cd9..0ead5ab (opus). Verdict: Ready to merge, Yes.
+- Confirmed all 5 reshaped API routes' new {activity|id|dependency, cpm} response shapes compose correctly end-to-end through ActivityTable/ActivityRow/DependencyPanel, with no surviving old-shape consumer anywhere in the diff. Auth (isAdmin) preserved on every touched route. The set of 5 CPM-surfacing routes is confirmed complete (lock/reorder routes correctly excluded, POST activities correctly excluded per justified reasoning).
+- Minor (not fixed, accepted): PATCH /api/dependencies/[id]'s reshaped response has no client consumer yet (panel has no edit UI, only add/delete) — dead but harmless contract surface, revisit if a future week adds dependency editing.
+- Minor (not fixed, accepted): ActivityTable's savedSnapshots can briefly hold pre-CPM dates after a shifting edit, causing a rare/transient rollback-to-stale-dates if a *subsequent* save on the same row fails — narrow, visual only, self-corrects on next successful save.
+- Minor (recommended, not applied): add a one-line comment at ActivityRow's date <Input> or in applyCpmResult documenting that live successor-row date refresh relies on uncontrolled-input dirty-flag semantics — protects against a future controlled-input refactor silently breaking live updates.
+- Week 5 Dependensi UI COMPLETE (2026-07-03)

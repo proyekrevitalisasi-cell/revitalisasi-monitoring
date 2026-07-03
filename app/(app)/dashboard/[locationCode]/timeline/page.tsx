@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { GanttChart } from '@/components/gantt/GanttChart'
 import type { Dependency, BaselineActivitySnapshot } from '@/lib/types'
 
 export default async function TimelinePage({ params }: { params: { locationCode: string } }) {
@@ -62,17 +63,16 @@ export default async function TimelinePage({ params }: { params: { locationCode:
   const holidays = (holidayRows ?? []).map((h: { holiday_date: string }) => h.holiday_date)
 
   const dependencies = (dependencyRows ?? []) as Dependency[]
-  const activityCount = allPhases.reduce((sum, p) => sum + p.activities.length, 0)
 
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Timeline / Gantt — {location.name}</h2>
-      {/* Temporary placeholder — replaced by <GanttChart> in Task 11 once it exists. */}
-      <p className="text-sm text-gray-500">
-        {activityCount} kegiatan, {dependencies.length} dependensi, baseline:{' '}
-        {activeBaseline ? `${activeBaseline.name} (${baselineActivities.length} snapshot)` : 'belum ada'},{' '}
-        {holidays.length} hari libur.
-      </p>
+      <GanttChart
+        phases={allPhases}
+        dependencies={dependencies}
+        baselineActivities={baselineActivities}
+        holidays={holidays}
+      />
     </div>
   )
 }

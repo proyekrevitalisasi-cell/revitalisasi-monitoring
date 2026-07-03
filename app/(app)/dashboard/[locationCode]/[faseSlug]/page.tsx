@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSession, isAdmin } from '@/lib/auth-helpers'
 import { ActivityTable } from '@/components/activities/ActivityTable'
+import type { Dependency, LocationActivitySummary } from '@/lib/types'
 
 const VALID_PHASE_NUMBERS = ['1', '2', '3', '4']
 
@@ -56,22 +57,24 @@ export default async function FasePage({
   const phaseIds = (allPhases ?? []).map((p: { id: string }) => p.id)
 
   const { data: allActivityRows } = phaseIds.length
-    ? await supabase.from('activities').select('id').in('phase_id', phaseIds)
+    ? await supabase
+        .from('activities')
+        .select('id, kegiatan, phases(phase_code)')
+        .in('phase_id', phaseIds)
     : { data: [] }
-  const allActivityIds = (allActivityRows ?? []).map((a: { id: string }) => a.id)
+  const locationActivities: LocationActivitySummary[] = (allActivityRows ?? []).map((a) => {
+    const phaseEmbed = a.phases as { phase_code: string } | { phase_code: string }[] | null
+    const phaseCode = Array.isArray(phaseEmbed) ? (phaseEmbed[0]?.phase_code ?? '') : (phaseEmbed?.phase_code ?? '')
+    return { id: a.id, kegiatan: a.kegiatan, phaseCode }
+  })
+  const allActivityIds = locationActivities.map((a) => a.id)
 
-  const { data: dependencies } = allActivityIds.length
+  const { data: dependencyRows } = allActivityIds.length
     ? await supabase
         .from('activity_dependencies')
         .select('id, predecessor_id, successor_id, dep_type, lag_days')
         .in('predecessor_id', allActivityIds)
     : { data: [] }
-
-  const depCounts: Record<string, number> = {}
-  for (const dep of dependencies ?? []) {
-    depCounts[dep.predecessor_id] = (depCounts[dep.predecessor_id] ?? 0) + 1
-    depCounts[dep.successor_id] = (depCounts[dep.successor_id] ?? 0) + 1
-  }
 
   const { data: holidayRows } = await supabase.from('work_calendar').select('holiday_date')
   const holidays = (holidayRows ?? []).map((h: { holiday_date: string }) => h.holiday_date)
@@ -82,7 +85,8 @@ export default async function FasePage({
       <ActivityTable
         phaseId={phase.id}
         initialActivities={phase.activities}
-        depCounts={depCounts}
+        dependencies={(dependencyRows ?? []) as Dependency[]}
+        locationActivities={locationActivities}
         holidays={holidays}
         isAdmin={canEdit}
       />

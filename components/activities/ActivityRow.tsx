@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { SaveStatusBadge, type SaveStatus } from './SaveStatusBadge'
 import { DeleteActivityDialog } from './DeleteActivityDialog'
+import { DependencyPanel } from './DependencyPanel'
 import { computeDurasiHK } from '@/lib/calendar'
 import { validateRencanaDates, validateRealisasiDates } from '@/lib/activity-helpers'
 import { cn } from '@/lib/utils'
-import type { Activity, CpmSummary } from '@/lib/types'
+import type { Activity, CpmSummary, Dependency, LocationActivitySummary } from '@/lib/types'
 
 const STATUS_LABELS: Record<Activity['status'], string> = {
   belum_mulai: 'Belum Mulai',
@@ -25,7 +26,8 @@ interface ActivityRowProps {
   index: number
   isFirst: boolean
   isLast: boolean
-  depCount: number
+  dependencies: Dependency[]
+  locationActivities: LocationActivitySummary[]
   holidays: string[]
   isAdmin: boolean
   saveStatus: SaveStatus
@@ -34,6 +36,8 @@ interface ActivityRowProps {
   onMove: (id: string, direction: 'up' | 'down') => void
   onToggleLock: (id: string) => void
   onDeleted: (id: string, cpm: CpmSummary | null) => void
+  onDependencyAdded: (dep: Dependency, cpm: CpmSummary | null) => void
+  onDependencyDeleted: (depId: string, cpm: CpmSummary | null) => void
 }
 
 export function ActivityRow({
@@ -41,7 +45,8 @@ export function ActivityRow({
   index,
   isFirst,
   isLast,
-  depCount,
+  dependencies,
+  locationActivities,
   holidays,
   isAdmin,
   saveStatus,
@@ -50,6 +55,8 @@ export function ActivityRow({
   onMove,
   onToggleLock,
   onDeleted,
+  onDependencyAdded,
+  onDependencyDeleted,
 }: ActivityRowProps) {
   const holidayDates = holidays.map((h) => new Date(h))
   const durasiHK = computeDurasiHK(activity.tanggal_mulai_rencana, activity.tanggal_selesai_rencana, holidayDates)
@@ -153,7 +160,14 @@ export function ActivityRow({
         )}
       </TableCell>
       <TableCell>
-        <Badge variant="secondary">{depCount}</Badge>
+        <DependencyPanel
+          activity={{ id: activity.id, kegiatan: activity.kegiatan }}
+          dependencies={dependencies}
+          locationActivities={locationActivities}
+          isAdmin={isAdmin}
+          onDependencyAdded={onDependencyAdded}
+          onDependencyDeleted={onDependencyDeleted}
+        />
       </TableCell>
       <TableCell>
         {isAdmin ? (

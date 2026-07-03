@@ -6,19 +6,28 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components
 import { ActivityRow } from './ActivityRow'
 import { AddActivityDialog } from './AddActivityDialog'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
-import type { Activity, CpmSummary } from '@/lib/types'
+import type { Activity, CpmSummary, Dependency, LocationActivitySummary } from '@/lib/types'
 import type { SaveStatus } from './SaveStatusBadge'
 
 interface ActivityTableProps {
   phaseId: string
   initialActivities: Activity[]
-  depCounts: Record<string, number>
+  dependencies: Dependency[]
+  locationActivities: LocationActivitySummary[]
   holidays: string[]
   isAdmin: boolean
 }
 
-export function ActivityTable({ phaseId, initialActivities, depCounts, holidays, isAdmin }: ActivityTableProps) {
+export function ActivityTable({
+  phaseId,
+  initialActivities,
+  dependencies: initialDependencies,
+  locationActivities,
+  holidays,
+  isAdmin,
+}: ActivityTableProps) {
   const [activities, setActivities] = useState<Activity[]>(initialActivities)
+  const [dependencies, setDependencies] = useState<Dependency[]>(initialDependencies)
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({})
   const [movingIds, setMovingIds] = useState<Set<string>>(new Set())
   const pendingChanges = useRef<Record<string, Partial<Activity>>>({})
@@ -105,6 +114,23 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
     (id: string, cpm: CpmSummary | null) => {
       delete savedSnapshots.current[id]
       setActivities((prev) => prev.filter((a) => a.id !== id))
+      setDependencies((prev) => prev.filter((d) => d.predecessor_id !== id && d.successor_id !== id))
+      applyCpmResult(cpm)
+    },
+    [applyCpmResult]
+  )
+
+  const handleDependencyAdded = useCallback(
+    (dep: Dependency, cpm: CpmSummary | null) => {
+      setDependencies((prev) => [...prev, dep])
+      applyCpmResult(cpm)
+    },
+    [applyCpmResult]
+  )
+
+  const handleDependencyDeleted = useCallback(
+    (depId: string, cpm: CpmSummary | null) => {
+      setDependencies((prev) => prev.filter((d) => d.id !== depId))
       applyCpmResult(cpm)
     },
     [applyCpmResult]
@@ -223,7 +249,8 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
                 index={index}
                 isFirst={index === 0}
                 isLast={index === sortedActivities.length - 1}
-                depCount={depCounts[activity.id] ?? 0}
+                dependencies={dependencies}
+                locationActivities={locationActivities}
                 holidays={holidays}
                 isAdmin={isAdmin}
                 saveStatus={saveStatuses[activity.id] ?? 'idle'}
@@ -232,6 +259,8 @@ export function ActivityTable({ phaseId, initialActivities, depCounts, holidays,
                 onMove={handleMove}
                 onToggleLock={handleToggleLock}
                 onDeleted={handleDeleted}
+                onDependencyAdded={handleDependencyAdded}
+                onDependencyDeleted={handleDependencyDeleted}
               />
             ))}
           </TableBody>

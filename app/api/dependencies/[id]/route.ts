@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin, notFound } from '@/lib/auth-helpers'
 import { updateDependencySchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
-import { getActivityLocationId, runCpmForLocation } from '@/lib/cpm-runner'
+import { getActivityLocationId, runCpmForLocation, toCpmSummary } from '@/lib/cpm-runner'
+import type { CpmSummary } from '@/lib/types'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -36,8 +37,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (error) return serverError()
 
     const locationId = await getActivityLocationId(supabase, current.predecessor_id)
+    let cpm: CpmSummary | null = null
     if (locationId) {
-      await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+      const result = await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+      cpm = toCpmSummary(result)
     }
 
     await insertAuditLog({
@@ -47,7 +50,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       oldValue: current, newValue: updated,
     })
 
-    return NextResponse.json({ data: updated, error: null })
+    return NextResponse.json({ data: { dependency: updated, cpm }, error: null })
   } catch {
     return serverError()
   }
@@ -70,8 +73,10 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     if (error) return serverError()
 
     const locationId = await getActivityLocationId(supabase, current.predecessor_id)
+    let cpm: CpmSummary | null = null
     if (locationId) {
-      await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+      const result = await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+      cpm = toCpmSummary(result)
     }
 
     await insertAuditLog({
@@ -81,7 +86,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       oldValue: current,
     })
 
-    return NextResponse.json({ data: { id: params.id }, error: null })
+    return NextResponse.json({ data: { id: params.id, cpm }, error: null })
   } catch {
     return serverError()
   }

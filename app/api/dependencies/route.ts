@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, unauthorized, forbidden, serverError, isAdmin } from '@/lib/auth-helpers'
 import { createDependencySchema } from '@/lib/validations'
 import { insertAuditLog } from '@/lib/audit'
-import { getActivityLocationId, runCpmForLocation } from '@/lib/cpm-runner'
+import { getActivityLocationId, runCpmForLocation, toCpmSummary } from '@/lib/cpm-runner'
+import type { CpmSummary } from '@/lib/types'
 import { detectCycle, type CpmDependency, type DepType } from '@/lib/cpm'
 
 export async function POST(request: NextRequest) {
@@ -95,7 +96,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: null, error: { code: 'CREATE_ERROR', message: msg } }, { status: 400 })
     }
 
-    await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+    const result = await runCpmForLocation(supabase, locationId, { id: user.id, email: profile.email, full_name: profile.full_name })
+    const cpm: CpmSummary = toCpmSummary(result)
 
     await insertAuditLog({
       userId: user.id, userEmail: profile.email, userName: profile.full_name,
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
       newValue: dep,
     })
 
-    return NextResponse.json({ data: dep, error: null }, { status: 201 })
+    return NextResponse.json({ data: { dependency: dep, cpm }, error: null }, { status: 201 })
   } catch {
     return serverError()
   }

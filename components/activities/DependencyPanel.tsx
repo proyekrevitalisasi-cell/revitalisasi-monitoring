@@ -128,7 +128,13 @@ export function DependencyPanel({
         <DialogHeader>
           <DialogTitle>Dependensi Kegiatan: {activity.kegiatan}</DialogTitle>
         </DialogHeader>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'predecessor' | 'successor')}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as 'predecessor' | 'successor')
+            resetForm()
+          }}
+        >
           <TabsList>
             <TabsTrigger value="predecessor">Predecessor ({predecessors.length})</TabsTrigger>
             <TabsTrigger value="successor">Successor ({successors.length})</TabsTrigger>

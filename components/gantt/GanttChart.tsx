@@ -7,14 +7,18 @@ import { computeDateRange, dateToOffset } from '@/lib/gantt-layout'
 import { GanttControls } from './GanttControls'
 import { GanttRow } from './GanttRow'
 import { GanttArrows } from './GanttArrows'
+import { BaselinePanel } from './BaselinePanel'
 import { DAY_WIDTH, ROW_HEIGHT, HEADER_HEIGHT, NAME_COLUMN_WIDTH, type GanttViewMode } from './gantt-constants'
-import type { Phase, Activity, Dependency, BaselineActivitySnapshot } from '@/lib/types'
+import type { Phase, Activity, Dependency, BaselineActivitySnapshot, Baseline } from '@/lib/types'
 
 interface GanttChartProps {
   phases: Phase[]
   dependencies: Dependency[]
   baselineActivities: BaselineActivitySnapshot[]
   holidays: string[]
+  isAdmin: boolean
+  baselines: Baseline[]
+  locationId: string
 }
 
 interface FlatActivity {
@@ -22,7 +26,15 @@ interface FlatActivity {
   phaseCode: Phase['phase_code']
 }
 
-export function GanttChart({ phases, dependencies, baselineActivities, holidays }: GanttChartProps) {
+export function GanttChart({
+  phases,
+  dependencies,
+  baselineActivities,
+  holidays,
+  isAdmin,
+  baselines,
+  locationId,
+}: GanttChartProps) {
   const [viewMode, setViewMode] = useState<GanttViewMode>('bulan')
   const [showBaseline, setShowBaseline] = useState(true)
   const [showDependencies, setShowDependencies] = useState(true)
@@ -93,6 +105,11 @@ export function GanttChart({ phases, dependencies, baselineActivities, holidays 
 
   return (
     <div>
+      {isAdmin && (
+        <div className="flex justify-end mb-3">
+          <BaselinePanel locationId={locationId} baselines={baselines} />
+        </div>
+      )}
       <GanttControls
         viewMode={viewMode}
         onViewModeChange={setViewMode}

@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getSession, isAdmin } from '@/lib/auth-helpers'
 import { GanttChart } from '@/components/gantt/GanttChart'
-import type { Dependency, BaselineActivitySnapshot } from '@/lib/types'
+import type { Dependency, BaselineActivitySnapshot, Baseline } from '@/lib/types'
 
 export default async function TimelinePage({ params }: { params: { locationCode: string } }) {
   const supabase = createClient()
+  const { profile } = await getSession()
+  const canEdit = profile ? isAdmin(profile.role) : false
 
   const { data: location } = await supabase
     .from('locations')
@@ -59,6 +62,13 @@ export default async function TimelinePage({ params }: { params: { locationCode:
     baselineActivities = baselineRows ?? []
   }
 
+  const { data: allBaselineRows } = await supabase
+    .from('baselines')
+    .select('id, name, description, is_active, created_at')
+    .eq('location_id', location.id)
+    .order('created_at', { ascending: false })
+  const baselines = (allBaselineRows ?? []) as Baseline[]
+
   const { data: holidayRows } = await supabase.from('work_calendar').select('holiday_date')
   const holidays = (holidayRows ?? []).map((h: { holiday_date: string }) => h.holiday_date)
 
@@ -72,6 +82,9 @@ export default async function TimelinePage({ params }: { params: { locationCode:
         dependencies={dependencies}
         baselineActivities={baselineActivities}
         holidays={holidays}
+        isAdmin={canEdit}
+        baselines={baselines}
+        locationId={location.id}
       />
     </div>
   )

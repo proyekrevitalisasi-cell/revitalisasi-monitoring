@@ -262,3 +262,12 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
   npm test: 46/46 passing (unchanged). npm run build: clean, all 17 app routes generated.
 - Week 7 implementation COMPLETE (2026-07-04)
 - Task 5: complete (commit b4e50e0, review N/A -- verification-only task, no separate task reviewer per plan; real headless-Chromium Playwright pass, no product bugs found)
+
+## Week 7 -- FINAL WHOLE-BRANCH REVIEW
+- Reviewed range 378df2d..1307528 (opus). Verdict: Ready to merge, no fixes required.
+- Confirmed clean cross-task prop wiring (TimelinePage -> GanttChart -> BaselinePanel; [faseSlug]/page.tsx -> ActivityTable -> ActivityRow), isAdmin kept off BaselinePanel's own prop surface per plan, BaselineActivitySnapshot type consistent at every hop, server-side isAdmin/super_admin enforcement backs every client gate (client checks are cosmetic only, not the sole control), zero scope creep against the spec's Out of scope list (no delete-baseline UI, no Kartu Jalur Kritis card, no CPM engine changes), no test files touched (correct reuse of Week 6's computeDeviationDays coverage), no migration added (correct reuse of Week 2 tables).
+- Minor (not fixed, accepted): ActivityRow.tsx's Baseline Mulai cell renders a raw ISO date string instead of id-ID locale formatting like BaselinePanel's list -- matches the existing convention for adjacent Rencana date cells, defensible as-is.
+- Minor (not fixed, accepted, same as Task 4's own note): baseline/deviation recomputed every render with no memoization -- mirrors existing durasiHK pattern, row counts are tiny.
+- Recommendation for Week 8+ backlog (not a Week 7 blocker): the new Deviasi column now visibly surfaces the pre-existing Week 4 CPM auto-scheduler's silent reset of unlocked, no-predecessor activities to earliestStart=0 on any recalculation triggered elsewhere in the location -- previously invisible, now renders as large negative Deviasi values on unrelated rows that will read as data corruption to an admin. Week 7's code is correct (faithfully reporting stored dates); the underlying engine behavior is out of this week's scope per the spec. Recommend a dedicated fix/UX item (e.g. auto-lock or warn on silent resets) for a future week.
+- npm test: 46/46 passing. npm run build: clean.
+- Week 7 Baseline & Kritis COMPLETE (2026-07-04)

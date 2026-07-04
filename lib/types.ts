@@ -69,3 +69,11 @@ export interface BaselineActivitySnapshot {
   tanggal_selesai_rencana: string
   is_milestone: boolean
 }
+
+export interface Baseline {
+  id: string
+  name: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+}

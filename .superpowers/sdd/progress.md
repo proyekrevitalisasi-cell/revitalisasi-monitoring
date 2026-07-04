@@ -371,3 +371,26 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Task 6: complete (commit cde6db1, review clean; reviewer independently verified the critical baseFiltered-to-RiskMatrix / tableFiltered-to-RiskTable prop wiring in the actual JSX -- not swapped -- plus toggle-off logic and all 3 consumed component prop signatures; minor notes accepted: category/status option lists triplicated across RiskRegisterClient/RiskFormModal/RiskTable, plan-mandated verbatim not an implementer deviation)
 - Task 7: complete (commit 688debc, review clean; reviewer confirmed the page precisely mirrors Week 8's per-location dashboard query pattern, per-phase display_order sort applied before flattening not a global sort, RiskRegisterClient prop signature verified field-by-field. npm test: 68/68 passing. npm run build: clean, route /dashboard/[locationCode]/risks generated. npm run lint: clean.)
 - Week 9 Risk Register implementation COMPLETE (2026-07-04)
+- Task 8: complete -- final real-browser E2E pass via headless Chromium Playwright
+  (.superpowers/sdd/task-8-e2e.js, not committed), driving admin create/read/filter/inline-edit/
+  edit-modal/delete flows plus a Viewer read-only pass, all in one disposable 4-phase test
+  location (T9RISK, deactivated afterward). Test data: 6 risks created through the real
+  "+ Tambah Risiko" UI across 3 phases (F1/F2/F3) and 5 categories, landing in all 3 score bands
+  (low/medium/high) each in a distinct matrix cell, plus 2 risks re-statused via the edit modal
+  (Mitigated, Closed) so all 3 statuses were represented. All scenarios passed: table renders
+  correct Kategori/Fase/Skor(+color)/Status for all 6 rows; matrix shows count "1" in exactly the
+  6 occupied cells with band-correct color and blank elsewhere; clicking a matrix cell filters the
+  table to that exact PxD combo and applies the active ring, clicking again restores all rows and
+  removes the ring; the Fase filter narrows both table and matrix to one phase and resets cleanly;
+  an inline Probabilitas change fires a success toast and updates the Skor cell's number/color
+  live (verified again after a hard reload) with the matrix shifting accordingly; the Edit modal
+  pre-fills correctly with the Fase selector absent and Status now editable, and a Mitigasi+Status
+  change saves and reflects in the row; Delete names the correct risk in its confirm dialog and
+  removes the row while decrementing the matrix cell; the Viewer pass showed the same data with 0
+  inline Select comboboxes (plain numbers), no Aksi column, no "+ Tambah Risiko" button, while
+  matrix click-to-filter still worked (not role-gated). Bonus: confirmed the Sidebar's "Risk
+  Register" nav link (from Task 7) routes correctly. Zero console errors across the whole run. No
+  bugs found -- all 7 implementation tasks integrate cleanly on the first full pass. Cleanup:
+  DELETE /api/locations/{id} as super_admin succeeded, final GET /api/locations sweep confirmed
+  T9RISK no longer present; no shared locations touched.
+- Week 9 Risk Register COMPLETE (2026-07-04)

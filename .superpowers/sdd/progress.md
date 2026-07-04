@@ -200,3 +200,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Spec: docs/superpowers/specs/2026-07-04-minggu7-baseline-kritis-design.md
 - Task 1: complete (commit 3637d91, review clean)
 - Task 2: complete (commit aa9dd8c, review clean)
+- Task 3: complete (commit 640cec5, review clean; minor note: implementer's manual HTTP verification created a real "Baseline Awal Test" baseline against test location T11FIXB and left a dev server running on port 3000 -- flagged for Task 5's cleanup pass)

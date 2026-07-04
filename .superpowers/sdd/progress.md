@@ -394,3 +394,13 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
   DELETE /api/locations/{id} as super_admin succeeded, final GET /api/locations sweep confirmed
   T9RISK no longer present; no shared locations touched.
 - Week 9 Risk Register COMPLETE (2026-07-04)
+
+## Week 9 -- FINAL WHOLE-BRANCH REVIEW
+- Reviewed range 83b2231..f2134c7 (opus). Verdict: Ready to merge, Yes, no fixes required.
+- Confirmed the two-layer filtering (RiskMatrix reads baseFiltered, RiskTable reads tableFiltered) composes correctly end-to-end from RiskRegisterClient, re-verified the create-vs-edit null/undefined field handling against createRiskSchema/updateRiskSchema in lib/validations.ts holds at the whole-feature level, confirmed both API routes return full rows via .select('*') so optimistic {...json.data, phaseCode} reconstruction in onSaved/onUpdated is sound, confirmed role gating (all-or-nothing for action buttons, per-field degrade-to-text for inline Probabilitas/Dampak) is consistently applied, confirmed zero scope creep against the spec's Out of scope list.
+- Minor (not fixed, accepted, same as task-level reviewers' notes): Kategori/Status option lists duplicated across RiskFormModal/RiskTable/RiskRegisterClient -- plan-mandated verbatim from the plan's own code blocks, recommended future-week extraction to lib/risk-labels.ts, not a Week 9 blocker.
+- Minor (not fixed, accepted): a newly-created risk is appended to the end of the flat client-side list (handleSaved's [...prev, saved]) rather than re-sorted by phase/display_order, so it can render out of phase order until reload -- cosmetic only, # column is positional not an identifier.
+- Minor (not fixed, accepted): deleting or inline-editing the last risk out of the currently active matrix-filtered cell doesn't clear matrixFilter, so the cell can keep its active ring over an empty table state -- self-corrects on next click.
+- Minor (not fixed, accepted, plan-mandated): getScoreBandClasses has no direct unit test, only getScoreBand's boundaries are tested -- matches the brief's own scope, mapping is trivial and exercised by both consumers.
+- npm test: 68/68 passing. npm run build: clean, all 18 routes generated. npm run lint: clean.
+- Week 9 Risk Register COMPLETE (2026-07-04)

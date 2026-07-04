@@ -10,9 +10,10 @@ import { SaveStatusBadge, type SaveStatus } from './SaveStatusBadge'
 import { DeleteActivityDialog } from './DeleteActivityDialog'
 import { DependencyPanel } from './DependencyPanel'
 import { computeDurasiHK } from '@/lib/calendar'
+import { computeDeviationDays } from '@/lib/gantt-layout'
 import { validateRencanaDates, validateRealisasiDates } from '@/lib/activity-helpers'
 import { cn } from '@/lib/utils'
-import type { Activity, CpmSummary, Dependency, LocationActivitySummary } from '@/lib/types'
+import type { Activity, CpmSummary, Dependency, LocationActivitySummary, BaselineActivitySnapshot } from '@/lib/types'
 
 const STATUS_LABELS: Record<Activity['status'], string> = {
   belum_mulai: 'Belum Mulai',
@@ -29,6 +30,7 @@ interface ActivityRowProps {
   dependencies: Dependency[]
   locationActivities: LocationActivitySummary[]
   holidays: string[]
+  baselineActivities: BaselineActivitySnapshot[]
   isAdmin: boolean
   saveStatus: SaveStatus
   isMoving: boolean
@@ -48,6 +50,7 @@ export function ActivityRow({
   dependencies,
   locationActivities,
   holidays,
+  baselineActivities,
   isAdmin,
   saveStatus,
   isMoving,
@@ -60,6 +63,14 @@ export function ActivityRow({
 }: ActivityRowProps) {
   const holidayDates = holidays.map((h) => new Date(h))
   const durasiHK = computeDurasiHK(activity.tanggal_mulai_rencana, activity.tanggal_selesai_rencana, holidayDates)
+  const baseline = baselineActivities.find((b) => b.activity_id === activity.id)
+  const deviation = baseline
+    ? computeDeviationDays(
+        new Date(baseline.tanggal_mulai_rencana),
+        new Date(activity.tanggal_mulai_rencana),
+        holidayDates
+      )
+    : null
 
   function handleRencanaDateChange(field: 'tanggal_mulai_rencana' | 'tanggal_selesai_rencana', value: string) {
     const mulai = field === 'tanggal_mulai_rencana' ? value : activity.tanggal_mulai_rencana
@@ -194,8 +205,10 @@ export function ActivityRow({
         )}
       </TableCell>
       <TableCell className="text-center text-gray-500">{durasiHK}</TableCell>
-      <TableCell className="text-gray-300">–</TableCell>
-      <TableCell className="text-gray-300">–</TableCell>
+      <TableCell className="text-gray-500">{baseline?.tanggal_mulai_rencana ?? '–'}</TableCell>
+      <TableCell className="text-center text-gray-500">
+        {deviation === null ? '–' : deviation > 0 ? `+${deviation}` : deviation}
+      </TableCell>
       <TableCell>
         {isAdmin ? (
           <Input

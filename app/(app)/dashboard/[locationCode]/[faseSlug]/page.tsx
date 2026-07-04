@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSession, isAdmin } from '@/lib/auth-helpers'
 import { ActivityTable } from '@/components/activities/ActivityTable'
-import type { Dependency, LocationActivitySummary } from '@/lib/types'
+import type { Dependency, LocationActivitySummary, BaselineActivitySnapshot } from '@/lib/types'
 
 const VALID_PHASE_NUMBERS = ['1', '2', '3', '4']
 
@@ -79,6 +79,25 @@ export default async function FasePage({
   const { data: holidayRows } = await supabase.from('work_calendar').select('holiday_date')
   const holidays = (holidayRows ?? []).map((h: { holiday_date: string }) => h.holiday_date)
 
+  const { data: activeBaseline } = await supabase
+    .from('baselines')
+    .select('id')
+    .eq('location_id', location.id)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  const phaseActivityIds = phase.activities.map((a: { id: string }) => a.id)
+
+  let baselineActivities: BaselineActivitySnapshot[] = []
+  if (activeBaseline && phaseActivityIds.length) {
+    const { data: baselineRows } = await supabase
+      .from('baseline_activities')
+      .select('activity_id, kegiatan, tanggal_mulai_rencana, tanggal_selesai_rencana, is_milestone')
+      .eq('baseline_id', activeBaseline.id)
+      .in('activity_id', phaseActivityIds)
+    baselineActivities = baselineRows ?? []
+  }
+
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900 mb-4">{phase.name}</h2>
@@ -88,6 +107,7 @@ export default async function FasePage({
         dependencies={(dependencyRows ?? []) as Dependency[]}
         locationActivities={locationActivities}
         holidays={holidays}
+        baselineActivities={baselineActivities}
         isAdmin={canEdit}
       />
     </div>

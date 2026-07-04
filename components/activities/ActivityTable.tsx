@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components
 import { ActivityRow } from './ActivityRow'
 import { AddActivityDialog } from './AddActivityDialog'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
-import type { Activity, CpmSummary, Dependency, LocationActivitySummary } from '@/lib/types'
+import type { Activity, CpmSummary, Dependency, LocationActivitySummary, BaselineActivitySnapshot } from '@/lib/types'
 import type { SaveStatus } from './SaveStatusBadge'
 
 interface ActivityTableProps {
@@ -15,6 +15,7 @@ interface ActivityTableProps {
   dependencies: Dependency[]
   locationActivities: LocationActivitySummary[]
   holidays: string[]
+  baselineActivities: BaselineActivitySnapshot[]
   isAdmin: boolean
 }
 
@@ -24,6 +25,7 @@ export function ActivityTable({
   dependencies: initialDependencies,
   locationActivities,
   holidays,
+  baselineActivities,
   isAdmin,
 }: ActivityTableProps) {
   const [activities, setActivities] = useState<Activity[]>(initialActivities)
@@ -252,6 +254,7 @@ export function ActivityTable({
                 dependencies={dependencies}
                 locationActivities={locationActivities}
                 holidays={holidays}
+                baselineActivities={baselineActivities}
                 isAdmin={isAdmin}
                 saveStatus={saveStatuses[activity.id] ?? 'idle'}
                 isMoving={movingIds.has(activity.id)}

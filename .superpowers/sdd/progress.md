@@ -347,3 +347,15 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
   deactivation was needed. npm test: 62/62 passing (unchanged, no new tests -- this is a
   verification-only task). npm run build: clean, all 17 routes generated.
 - Week 8 implementation COMPLETE (2026-07-04)
+
+## Week 8 -- FINAL WHOLE-BRANCH REVIEW
+- Reviewed range 3038522..d9e5cac (opus). Verdict: Ready to merge, no fixes required.
+- Confirmed ActivityIssueTable genuinely works correctly under both showLocation values with no leaked assumptions between the two call sites, clean pure-logic/presentational layering per lib/dashboard-metrics.ts + components/dashboard/*, correct reuse of PHASE_COLORS/useDebouncedCallback/SaveStatusBadge/Progress, KkConsentForm correctly follows the required per-field isAdmin-gating convention (not an all-or-nothing gate), zero scope creep against the spec's Out of scope list, testing/migration discipline held (only lib/dashboard-metrics.test.ts touched, no migrations).
+- Verified both carried-over task-review flags hold as accepted precedent, not regressions: (1) KkConsentForm's overlapping in-flight PATCH race structurally matches ActivityTable.tsx's own pre-existing Week 3 flushSave pattern; (2) Task 11's final committed page code is correct regardless of that task's verification-process detour.
+- Minor (not fixed, accepted): ActivityIssueRow-building logic duplicated between app/(app)/page.tsx and app/(app)/dashboard/[locationCode]/page.tsx -- now confirmed at 2 call sites, worth a shared lib/dashboard-metrics.ts helper in a future week.
+- Minor (not fixed, accepted): KkConsentForm doesn't revert optimistic state on a failed save (leaves the unpersisted value on screen until next edit/reload) -- a real parity gap vs ActivityTable's snapshot-revert-on-error, low blast radius (admin-only, visible error toast), worth fixing in a future pass.
+- Minor (not fixed, accepted): landing page's nested phases query has no explicit ordering (unlike the per-location page's .order('display_order')), so LocationSummaryCard's mini phase-bars could render out of F1-F4 order depending on PostgREST's return order -- cosmetic only, each bar is still correctly colored/labeled by its own phase_code.
+- Minor (not fixed, accepted): isNeedsAttention's "< today" rule means an activity due exactly today shows "0 hari telat" rather than being excluded -- faithful to the approved spec wording, flagged only as a UX nuance to confirm is intended.
+- Minor (not fixed, accepted, same precedent as Week 7): raw ISO date strings render unformatted in ActivityIssueTable/UpcomingActivitiesPanel/CriticalPathCard, matching the already-accepted Week 7 convention.
+- npm test: 62/62 passing. npm run build: clean.
+- Week 8 Dashboard COMPLETE (2026-07-04)

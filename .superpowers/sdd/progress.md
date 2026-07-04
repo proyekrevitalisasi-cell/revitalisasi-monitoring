@@ -359,3 +359,8 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Minor (not fixed, accepted, same precedent as Week 7): raw ISO date strings render unformatted in ActivityIssueTable/UpcomingActivitiesPanel/CriticalPathCard, matching the already-accepted Week 7 convention.
 - npm test: 62/62 passing. npm run build: clean.
 - Week 8 Dashboard COMPLETE (2026-07-04)
+
+## Week 9
+# Plan: docs/superpowers/plans/2026-07-04-minggu9-risk-register.md
+# Spec: docs/superpowers/specs/2026-07-04-minggu9-risk-register-design.md
+- Task 1: complete (commit 9789e99, review clean; minor notes accepted: getScoreBandClasses has no direct unit test per brief's own scope, no input clamping outside 1-25 domain, both matching the brief's literal reference implementation)

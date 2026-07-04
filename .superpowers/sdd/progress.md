@@ -286,3 +286,64 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Task 9: complete (commit ef6c813, review clean; verified via real Playwright browser session across two seeded locations since none had both full 4-phase data and target_kk>0; minor note: ActivityIssueRow-building logic duplicated between this page and Task 7's landing page, pre-existing pattern not introduced by this task, worth a future lib/dashboard-metrics.ts helper extraction; no error handling on Supabase queries, consistent with every other page in this codebase)
 - Task 10: complete (commit 2d4437b, review clean; reviewer flagged "Important": overlapping in-flight PATCH requests aren't guarded (a save fired while a prior one is still in-flight could let a stale response stomp newer state) -- verified this is not a new defect: components/activities/ActivityTable.tsx's own established flushSave/debouncedFlush pattern (Week 3) has the exact same characteristic with no in-flight guard, so this is consistent with this codebase's existing debounced-autosave architecture rather than a regression introduced by this task. Accepted as-is, not fixed, same as prior weeks' precedent of accepting issues consistent with established codebase conventions. Minor notes also accepted: setStatus's setTimeout not cleared on unmount; EditableFields could be simplified to a Partial<Pick<...>> alias.)
 - Task 11: complete (commit edc0b74, review clean after fix; first implementer incorrectly skipped required manual browser verification claiming a false "headless environment limitation" -- caught by task review, re-dispatched, fix subagent performed real Playwright verification confirming admin editable+debounced-autosave, viewer read-only, and invalid-location 404, all passing; one benign one-time React hydration warning on first navigation, not reproduced on retry, assessed as dev-mode artifact and accepted; a verification-script race briefly left TA's menolak at 1 in the DB, caught via dev-server log and reverted before task completion)
+- Task 12: COMPLETE via real headless-Chromium Playwright E2E, driving all 3 rewritten Dashboard
+  pages together in one session (landing "/", per-location "/dashboard/CPMTEST",
+  "/dashboard/CPMTEST/kk-consent") -- the first pass to exercise them end-to-end as one flow
+  rather than per-task in isolation. Test data: used the existing `CPMTEST` location (4 phases,
+  26 activities, already had 1 critical-path activity "Permohonan PBG" and 6 overdue
+  non-`selesai` activities from earlier weeks' seeding) and additionally PATCHed one activity
+  ("Sosialisasi Tahap 1 – Pertemuan warga RT/RW", not yet due) to `ditunda` via an authenticated
+  admin request, to get a ditunda case distinct from the overdue cases. `CPMTEST`'s
+  `kk_consent.target_kk` was already 0, which happened to fit the brief's target_kk=0 -> set
+  nonzero -> bar-appears flow perfectly, so only this one location was needed for the whole
+  pass (no second location required).
+  All scenarios passed: landing page shows each location card with a progress bar/%, 4 phase
+  mini-bars, and correct kritis/ditunda/selesai counts (CPMTEST's card correctly read "1 kritis"
+  / "1 ditunda" / "0/26 selesai"); the comparative table rendered 1 row per active location (9);
+  the Isu Lintas-Lokasi panel listed 7 CPMTEST rows (6 overdue + 1 ditunda) among 25 total across
+  all locations, sorted most-overdue-first (verified the numeric overdueDays sequence is
+  non-increasing, with the ditunda row -- which has no overdueDays -- trailing); clicking
+  CPMTEST's card navigated to exactly `/dashboard/CPMTEST` (not 404, not a fase-1 redirect); the
+  per-location dashboard showed all 4 phase cards (F1 correctly showing its own "1 ditunda"
+  badge), the Jalur Kritis card with critical count "1" and a real finish date (`2026-09-24`,
+  not "–"), a 5-item Kegiatan Mendatang list, and a 7-row Perlu Perhatian table (with exactly 1
+  "Ditunda" badge, the rest as "N hari telat"); the KK Consent summary bar was correctly absent
+  while target_kk=0. On the KK Consent page, Target KK/Setuju/Menolak were edited in rapid
+  succession (three `.fill()` calls fired back-to-back, all within the 600ms debounce window) --
+  confirmed only a single debounced save fired ("✓ Tersimpan" seen once) and, critically, all
+  3 fields persisted correctly after reload (target_kk=100, setuju=65, menolak=10, progress text
+  "65% (ambang 60%)") rather than only the last-typed field, positively confirming the
+  `pendingChanges` ref accumulates across fields as designed rather than each field's onChange
+  clobbering the others. Reloading the per-location dashboard then showed the KK Consent summary
+  bar now present with the correct "65% (ambang 60%)" text and a working
+  `/dashboard/CPMTEST/kk-consent` detail link. The Viewer-role pass confirmed `/` renders
+  identically (same 9 cards, same CPMTEST card content byte-for-byte), the per-location dashboard
+  renders identically (same 5 section headings + KK bar all present), and the KK Consent page
+  renders fully read-only (0 number inputs, 0 textareas, 0 save-status badges, plain-text "100"
+  visible for Target KK).
+  One console warning was investigated rather than dismissed: `Warning: Extra attributes from
+  the server: %s%s style` at KkConsentForm's `<Input>` elements, appearing intermittently
+  (reproduced on 2 of 3 full runs) immediately after a hard `page.goto` navigation to
+  `/dashboard/CPMTEST/kk-consent`, never on any other page in this app across all 8 weeks of
+  Playwright verification. Root-caused via a dedicated diagnostic script
+  (`task-12-hydration-check-week8.js`, not committed): the warning only appears when this
+  specific route is compiling on-demand for the first time in a cold `next dev` session *while*
+  Playwright's navigation is in flight; running the identical navigation sequence (including
+  through a client-side card click, matching the main script exactly) against a dev server whose
+  routes were pre-warmed via a plain `curl` beforehand produced 0 console errors on repeated
+  tries. This is the same class of dev-mode compile/hydration-timing artifact already identified
+  in Week 6 Task 12 (there: Fast Refresh racing an in-flight navigation from scratch-file writes;
+  here: on-demand route compilation racing an in-flight navigation) -- confirmed non-functional:
+  every value-persistence and rendering assertion immediately after this warning still passed in
+  every run, including the runs where the warning fired. Not a Week 8 product bug, not fixed (out
+  of scope, dev-only artifact that would not occur against a production build).
+  Cleanup: reverted CPMTEST's `kk_consent` row (target_kk/setuju/menolak back to 0) and the one
+  ditunda-flagged activity (back to `belum_mulai`) via a service-role script
+  (`task-12-cleanup-week8.js`, not committed) run after the final verification pass; a follow-up
+  inspection query confirmed every active location's `kk_consent.target_kk` and activity
+  status/critical/overdue counts exactly match the pre-verification baseline, with `TA` (the
+  only location with a genuinely nonzero `target_kk=960`) untouched throughout. No new test
+  locations were created for this task (reused the existing `CPMTEST`), so no location
+  deactivation was needed. npm test: 62/62 passing (unchanged, no new tests -- this is a
+  verification-only task). npm run build: clean, all 17 routes generated.
+- Week 8 implementation COMPLETE (2026-07-04)

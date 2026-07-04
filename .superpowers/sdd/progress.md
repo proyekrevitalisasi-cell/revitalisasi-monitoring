@@ -364,3 +364,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Plan: docs/superpowers/plans/2026-07-04-minggu9-risk-register.md
 # Spec: docs/superpowers/specs/2026-07-04-minggu9-risk-register-design.md
 - Task 1: complete (commit 9789e99, review clean; minor notes accepted: getScoreBandClasses has no direct unit test per brief's own scope, no input clamping outside 1-25 domain, both matching the brief's literal reference implementation)
+- Task 2: complete (commit bebc48b, review clean; minor note accepted: implicit any on json.res() is a pre-existing pattern copied verbatim from DeleteActivityDialog.tsx, not a regression)

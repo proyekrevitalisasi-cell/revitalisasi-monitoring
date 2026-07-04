@@ -77,3 +77,15 @@ export interface Baseline {
   is_active: boolean
   created_at: string
 }
+
+export interface KkConsent {
+  id: string
+  location_id: string
+  target_kk: number
+  setuju: number
+  menolak: number
+  belum_dihubungi: number
+  threshold_pct: number
+  catatan: string | null
+  updated_at: string
+}

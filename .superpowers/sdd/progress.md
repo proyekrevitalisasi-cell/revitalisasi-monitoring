@@ -365,3 +365,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Spec: docs/superpowers/specs/2026-07-04-minggu9-risk-register-design.md
 - Task 1: complete (commit 9789e99, review clean; minor notes accepted: getScoreBandClasses has no direct unit test per brief's own scope, no input clamping outside 1-25 domain, both matching the brief's literal reference implementation)
 - Task 2: complete (commit bebc48b, review clean; minor note accepted: implicit any on json.res() is a pre-existing pattern copied verbatim from DeleteActivityDialog.tsx, not a regression)
+- Task 3: complete (commit 761844e, review clean; reviewer independently cross-checked the create-vs-edit null/undefined field handling against createRiskSchema/updateRiskSchema in lib/validations.ts, confirmed correct in both directions; minor notes accepted: no Label/Input id association, no scroll wrapper for the modal on short viewports)

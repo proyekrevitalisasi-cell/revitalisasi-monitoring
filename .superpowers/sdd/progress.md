@@ -202,3 +202,62 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Task 2: complete (commit aa9dd8c, review clean)
 - Task 3: complete (commit 640cec5, review clean; minor note: implementer's manual HTTP verification created a real "Baseline Awal Test" baseline against test location T11FIXB and left a dev server running on port 3000 -- flagged for Task 5's cleanup pass)
 - Task 4: complete (commit 5bab9fb, review clean; minor notes: deviation recomputed on every render with no memoization -- matches existing durasiHK pattern, accepted; no-reload live-update behavior verified by inference from existing ActivityTable state pattern rather than direct browser observation, accepted; incidental discovery of pre-existing Week 4 CPM auto-scheduler resetting unlocked activities' dates on save -- out of scope, not fixed)
+- Task 5: COMPLETE via real headless-Chromium Playwright E2E. Drove a real browser
+  (`chromium.launch({ executablePath: ...chromium-1223\chrome-win64\chrome.exe, headless: true })`)
+  through the full scenario end-to-end against a disposable test location (`T5BLK5`, standard
+  4-phase/27-activity template): logged in as `admin@perumnas.co.id`, confirmed every Fase 1
+  activity's Baseline Mulai/Deviasi read `–` before any baseline existed; opened "Kelola Baseline"
+  on the Timeline page, typed and saved "Baseline Awal", confirmed it appeared marked "Aktif" in
+  the list; back on Fase 1, confirmed every activity now showed a real Baseline Mulai date and
+  `Deviasi = 0`; clicked the 🔒 lock icon on "Sosialisasi Tahap 1 – Pertemuan warga RT/RW" (required
+  first, matching Week 6 Task 12's precedent, so the subsequent date PATCH's own CPM recalculation
+  wouldn't reset it back to project start) then edited its Rencana Mulai +3 working days -- Deviasi
+  correctly became `+3` while Baseline Mulai stayed unchanged; saved a second baseline "Baseline
+  Rev-1" and confirmed both baselines listed, with Rev-1 "Aktif" and Awal showing an "Aktifkan"
+  button; clicked "Aktifkan" on "Baseline Awal" and confirmed the list re-marked it "Aktif"; back
+  on Fase 1, confirmed Baseline Mulai correctly reverted to "Baseline Awal"'s original snapshot
+  date for the edited activity (not Rev-1's later snapshot), while Deviasi still correctly showed
+  `+3`; used "+ Tambah Kegiatan" to add a brand-new activity and confirmed its Baseline Mulai/Deviasi
+  both read `–` (no snapshot exists for an activity created after every baseline save); logged out
+  via the real "Keluar" button, logged in as `viewer@perumnas.co.id`, confirmed "Kelola Baseline"
+  is entirely absent on the Timeline page and Baseline Mulai/Deviasi render as plain text with no
+  inputs on Fase 1 (same as every other read-only column for that role), and "+ Tambah Kegiatan"
+  is likewise absent. Zero browser console errors across the whole run. Screenshots and the
+  throwaway script are under `.superpowers/sdd/task-5-e2e.js` / `task-5-screenshots/` (gitignored
+  scratch, not committed).
+  One selector bug was found and fixed in the *test script itself* (not product code): the
+  admin-view "Kegiatan" cell renders as an `<Input defaultValue=...>`, so a Playwright `text=`
+  locator can't see activity names there (`text=` only matches text nodes, not input values) --
+  switched to `input[value="..."]` matching with a `hasText` fallback for the Viewer's plain-text
+  rendering of the same cell.
+  Investigated, and ruled out as a false alarm (not a Task 5 bug), an apparent inconsistency where
+  a fresh SSR page load showed several *other*, unrelated Fase 1 activities' Rencana Mulai reset to
+  the project start date (with correspondingly large negative Deviasi, e.g. `-47`) after the
+  Step-4 PATCH, while the *live, not-yet-reloaded* page had briefly still shown their old correct
+  dates. A dedicated timing diagnostic (`task-5-diag.js`, not committed) polling both the live DOM
+  and a direct server GET every 500ms proved this is pure eventual-consistency lag, not a stale-UI
+  bug: the server-side value flips at ~1.5s post-PATCH (the 600ms debounce plus this environment's
+  Supabase Cloud round-trip latency) and the client's own rendered state catches up roughly one
+  render tick later, fully consistent by ~2.3s. The underlying reset itself is the same
+  pre-existing Week 4 CPM auto-scheduler behavior already flagged (not newly introduced, not
+  fixed) in Week 4/6 and this week's Task 4 ledger entries -- unlocked, no-predecessor activities
+  always resolve to `earliestStart = 0` on any CPM run triggered by another activity's date change
+  in the same location. This is the first time it's been visually confirmed to produce large,
+  user-visible negative Deviasi values on unrelated rows through the new Task 4 column -- worth a
+  UX callout for a future week (e.g. nudge admins to lock activities they don't want silently
+  reset), still out of this task's scope to fix. Widened all post-PATCH waits in the final script
+  to account for this latency so every assertion reads settled state.
+  Cleanup: stopped two stray dev-server processes left running from Tasks 3 (port 3000, PID 5376)
+  and 4 (port 3001, PID 25612) per the task brief's note, then started one fresh dev server for
+  this task's own verification pass and stopped it again afterward. Deactivated (`DELETE
+  /api/locations/{id}` as `superadmin@perumnas.co.id`, since `admin@perumnas.co.id` is role `admin`
+  and that route requires `super_admin`, same precedent as Weeks 6-7) every disposable test
+  location created while iterating on the script (`T5BLK`, `T5BLK2`, `T5BLK3`, `T5BLK4`, `T5BLK5`,
+  `T5DIAG`) -- confirmed via a final `GET /api/locations` sweep that only the expected long-lived
+  shared locations remain active (`TA`, `KK`, `KL`, `KMY`, `TEST`, `CPMTEST`, `T11FIXA`, `T11FIXB`,
+  `T5DEP`). Did not touch the pre-existing leftover baselines on `T11FIXB` (Task 3) or `TEST` (Task
+  4) or those locations themselves -- consistent with the same "left inactive-but-undeleted /
+  harmless extra baseline, no code impact" precedent already recorded in the Week 5-7 ledger
+  entries for those exact locations.
+  npm test: 46/46 passing (unchanged). npm run build: clean, all 17 app routes generated.
+- Week 7 implementation COMPLETE (2026-07-04)

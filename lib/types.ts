@@ -89,3 +89,33 @@ export interface KkConsent {
   catatan: string | null
   updated_at: string
 }
+
+export type RiskCategory = 'teknis' | 'hukum' | 'keuangan' | 'sosial' | 'lingkungan' | 'lainnya'
+export type RiskStatus = 'open' | 'mitigated' | 'closed'
+
+export interface RiskItem {
+  id: string
+  phase_id: string
+  title: string
+  description: string | null
+  category: RiskCategory
+  probability: number
+  impact: number
+  score: number
+  mitigation: string | null
+  owner: string | null
+  status: RiskStatus
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface RiskWithPhase extends RiskItem {
+  phaseCode: string
+}
+
+export interface RiskPhaseOption {
+  id: string
+  phase_code: string
+  name: string
+}

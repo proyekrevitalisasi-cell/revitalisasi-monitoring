@@ -271,3 +271,8 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Recommendation for Week 8+ backlog (not a Week 7 blocker): the new Deviasi column now visibly surfaces the pre-existing Week 4 CPM auto-scheduler's silent reset of unlocked, no-predecessor activities to earliestStart=0 on any recalculation triggered elsewhere in the location -- previously invisible, now renders as large negative Deviasi values on unrelated rows that will read as data corruption to an admin. Week 7's code is correct (faithfully reporting stored dates); the underlying engine behavior is out of this week's scope per the spec. Recommend a dedicated fix/UX item (e.g. auto-lock or warn on silent resets) for a future week.
 - npm test: 46/46 passing. npm run build: clean.
 - Week 7 Baseline & Kritis COMPLETE (2026-07-04)
+
+## Week 8
+# Plan: docs/superpowers/plans/2026-07-04-minggu8-dashboard.md
+# Spec: docs/superpowers/specs/2026-07-04-minggu8-dashboard-design.md
+- Task 1: complete (commit 6e58fad, review clean; note: plan prose said "61 total" tests but the plan's own code block has 16 test cases not 15, so 46+16=62 is correct -- not a spec deviation, just an arithmetic slip in the plan text, acknowledged and non-blocking)

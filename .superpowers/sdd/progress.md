@@ -261,3 +261,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
   entries for those exact locations.
   npm test: 46/46 passing (unchanged). npm run build: clean, all 17 app routes generated.
 - Week 7 implementation COMPLETE (2026-07-04)
+- Task 5: complete (commit b4e50e0, review N/A -- verification-only task, no separate task reviewer per plan; real headless-Chromium Playwright pass, no product bugs found)

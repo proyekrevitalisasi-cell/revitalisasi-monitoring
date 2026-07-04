@@ -194,3 +194,8 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Cleanup note: two test locations created during the arrow-fix verification (T11FIXA/T11FIXB) could not be deleted with the admin test account (DELETE /api/locations requires super_admin) -- same precedent as Task 12's cleanup snag. Left inactive-but-undeleted in the dev Supabase project, no code impact.
 - npm test: 46/46 passing. npm run build: clean.
 - Week 6 Gantt 3 Lapis COMPLETE (2026-07-03)
+
+## Week 7
+# Plan: docs/superpowers/plans/2026-07-04-minggu7-baseline-kritis.md
+# Spec: docs/superpowers/specs/2026-07-04-minggu7-baseline-kritis-design.md
+- Task 1: complete (commit 3637d91, review clean)

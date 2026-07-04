@@ -199,3 +199,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Plan: docs/superpowers/plans/2026-07-04-minggu7-baseline-kritis.md
 # Spec: docs/superpowers/specs/2026-07-04-minggu7-baseline-kritis-design.md
 - Task 1: complete (commit 3637d91, review clean)
+- Task 2: complete (commit aa9dd8c, review clean)

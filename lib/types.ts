@@ -132,3 +132,9 @@ export interface WorkloadActivity {
   locationCode: string
   locationName: string
 }
+
+export interface Holiday {
+  id: string
+  holiday_date: string
+  name: string
+}

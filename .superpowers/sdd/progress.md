@@ -404,3 +404,8 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Minor (not fixed, accepted, plan-mandated): getScoreBandClasses has no direct unit test, only getScoreBand's boundaries are tested -- matches the brief's own scope, mapping is trivial and exercised by both consumers.
 - npm test: 68/68 passing. npm run build: clean, all 18 routes generated. npm run lint: clean.
 - Week 9 Risk Register COMPLETE (2026-07-04)
+
+## Week 10
+# Plan: docs/superpowers/plans/2026-07-05-minggu10-pm-views.md
+# Spec: docs/superpowers/specs/2026-07-05-minggu10-pm-views-design.md
+- Task 1: complete (commit 9d04848, review clean; reviewer independently verified overlap-detection logic and computeProgressPct reuse; minor note accepted: implementer report miscounted field count in prose, code itself correct)

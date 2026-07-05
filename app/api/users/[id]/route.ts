@@ -32,6 +32,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (!target) return notFound()
 
+    // Prevent self-lockout/self-demotion: before the createAdminClient() fix below, every
+    // profiles UPDATE via the session client silently failed anyway, which accidentally blocked
+    // a Super Admin from self-PATCHing (e.g. is_active: false or role: 'viewer' on themselves).
+    // Now that the write goes through the service-role client, that accidental protection is
+    // gone, so it must be enforced explicitly here -- mirrors the DELETE handler's own guard.
+    if (target.id === user.id) return forbidden()
+
     // Admin cannot modify Admin or Super Admin
     if (profile.role === 'admin' && target.role !== 'viewer') return forbidden()
 

@@ -31,7 +31,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, profile, supabase } = await getSession()
+    const { user, profile } = await getSession()
     if (!user || !profile) return unauthorized()
     if (!isAdmin(profile.role)) return forbidden()
 
@@ -70,11 +70,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Trigger handle_new_user sets role from metadata; also update created_by
-    await supabase
+    // Trigger handle_new_user sets role from metadata; also update created_by.
+    // Use the service-role client: the profiles_update RLS policy has no explicit WITH CHECK,
+    // which in practice silently fails this update on the anon/session-scoped client even for a
+    // fully-authorized actor -- same gap documented in PATCH/DELETE at app/api/users/[id]/route.ts.
+    // A failure here only affects creator attribution, not the already-created auth user, so it
+    // is deliberately non-fatal: created_by simply stays NULL (a valid pre-existing value per
+    // Profile.created_by: string | null in lib/types.ts).
+    const { error: attributionError } = await admin
       .from('profiles')
       .update({ created_by: user.id })
       .eq('id', newUser.user.id)
+
+    if (attributionError) console.error('Failed to set created_by:', attributionError)
 
     await insertAuditLog({
       userId: user.id,

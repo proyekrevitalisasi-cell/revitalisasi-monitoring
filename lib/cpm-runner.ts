@@ -80,7 +80,7 @@ export async function runCpmForLocation(
 
   const { data: activityRows, error: activitiesError } = await supabase
     .from('activities')
-    .select('id, tanggal_mulai_rencana, tanggal_selesai_rencana, date_locked')
+    .select('id, tanggal_mulai_rencana, tanggal_selesai_rencana, date_locked, is_on_critical_path, total_float_days')
     .in('phase_id', phaseIds)
   if (activitiesError) {
     // A silently-swallowed error here (e.g. a missing/renamed column) would
@@ -94,6 +94,8 @@ export async function runCpmForLocation(
     tanggal_mulai_rencana: string
     tanggal_selesai_rencana: string
     date_locked: boolean
+    is_on_critical_path: boolean
+    total_float_days: number
   }>
   if (activities.length === 0) return empty
   const activityIds = activities.map((a) => a.id)
@@ -162,13 +164,6 @@ export async function runCpmForLocation(
       const node = result.nodes.get(activity.id)
       if (!node) return null
 
-      const updates: Record<string, unknown> = {
-        is_on_critical_path: node.isCritical,
-        total_float_days: node.totalFloat,
-        updated_by: actor.id,
-        updated_at: new Date().toISOString(),
-      }
-
       let mulai = activity.tanggal_mulai_rencana
       let selesai = activity.tanggal_selesai_rencana
       let shifted = false
@@ -177,8 +172,33 @@ export async function runCpmForLocation(
         mulai = format(cpmStartToDate(node.earliestStart, projectStart, holidays), 'yyyy-MM-dd')
         selesai = format(cpmFinishToDate(node.earliestFinish, projectStart, holidays), 'yyyy-MM-dd')
         shifted = mulai !== activity.tanggal_mulai_rencana || selesai !== activity.tanggal_selesai_rencana
+      }
+
+      const updates: Record<string, unknown> = {
+        is_on_critical_path: node.isCritical,
+        total_float_days: node.totalFloat,
+      }
+      if (!activity.date_locked) {
         updates.tanggal_mulai_rencana = mulai
         updates.tanggal_selesai_rencana = selesai
+      }
+
+      // Only bump updated_at/updated_by when this activity's CPM-derived state
+      // actually changed. Every holiday/dependency/activity edit anywhere
+      // re-runs CPM for the WHOLE location (runCpmForAllActiveLocations re-runs
+      // it for EVERY active location), which previously stamped updated_at on
+      // every activity unconditionally -- including already-`selesai` ones that
+      // nothing happened to. Weekly Summary's "Selesai Minggu Ini" panel reads
+      // updated_at as "completed this week," so a totally unrelated admin
+      // action (e.g. adding a national holiday next year) was silently making
+      // long-completed activities in every other location look freshly done.
+      const changed =
+        shifted ||
+        activity.is_on_critical_path !== node.isCritical ||
+        activity.total_float_days !== node.totalFloat
+      if (changed) {
+        updates.updated_by = actor.id
+        updates.updated_at = new Date().toISOString()
       }
 
       const { error } = await supabase.from('activities').update(updates).eq('id', activity.id)

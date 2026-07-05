@@ -68,7 +68,12 @@ export function Sidebar({ profile, locations }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = profile.role === 'admin' || profile.role === 'super_admin'
 
-  const locationCodeMatch = pathname.match(/^\/dashboard\/([A-Z]+)/)
+  // Location codes may contain digits (e.g. T5DEP, T11FIXA) -- [A-Z]+ alone
+  // truncated the match at the first digit, silently sending every
+  // location-scoped link (Timeline, Ringkasan Mingguan, Fase 1-4, Risk
+  // Register, Persetujuan Warga) to a mangled URL like /dashboard/T/... for
+  // any such location.
+  const locationCodeMatch = pathname.match(/^\/dashboard\/([A-Z0-9]+)/)
   const currentCode = locationCodeMatch?.[1]
 
   return (

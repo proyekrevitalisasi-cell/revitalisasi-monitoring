@@ -119,3 +119,16 @@ export interface RiskPhaseOption {
   phase_code: string
   name: string
 }
+
+export interface WorkloadActivity {
+  id: string
+  kegiatan: string
+  pic: string
+  status: ActivityStatus
+  progress_pct: number
+  tanggal_mulai_rencana: string
+  tanggal_selesai_rencana: string
+  phaseCode: string
+  locationCode: string
+  locationName: string
+}

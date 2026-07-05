@@ -23,6 +23,7 @@ export function ImportNationalHolidaysButton({ existingDates, onImported }: Impo
     const toAdd = NATIONAL_HOLIDAYS[year].filter((h) => !existingDates.has(h.holiday_date))
     const alreadyPresent = NATIONAL_HOLIDAYS[year].length - toAdd.length
     const added: Holiday[] = []
+    let skippedExisting = 0
     let failed = 0
 
     for (const holiday of toAdd) {
@@ -34,7 +35,11 @@ export function ImportNationalHolidaysButton({ existingDates, onImported }: Impo
         })
         const json = await res.json()
         if (!res.ok || json.error) {
-          failed += 1
+          if (json.error?.message === 'Tanggal sudah ada') {
+            skippedExisting += 1
+          } else {
+            failed += 1
+          }
           continue
         }
         added.push(json.data as Holiday)
@@ -44,7 +49,12 @@ export function ImportNationalHolidaysButton({ existingDates, onImported }: Impo
     }
 
     onImported(added)
-    toast.success(`${added.length} hari libur ditambahkan, ${alreadyPresent + failed} sudah ada`)
+    const totalAlreadyPresent = alreadyPresent + skippedExisting
+    if (failed > 0) {
+      toast.error(`${added.length} ditambahkan, ${totalAlreadyPresent} sudah ada, ${failed} gagal`)
+    } else {
+      toast.success(`${added.length} hari libur ditambahkan, ${totalAlreadyPresent} sudah ada`)
+    }
     setImporting(false)
   }
 

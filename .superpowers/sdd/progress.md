@@ -431,3 +431,8 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Recommendation (not applied): add the cpm-runner.ts regression test recommended by Task 13's dedicated fix review, now that this file has real branching logic again for the first time since Week 4.
 - npm test: 83/83 passing. npm run build: clean, 19 routes. npm run lint: clean.
 - Week 10 PM Views COMPLETE (2026-07-05)
+
+## Week 11
+# Plan: docs/superpowers/plans/2026-07-05-minggu11-raci-pelaporan.md
+# Spec: docs/superpowers/specs/2026-07-05-minggu11-raci-pelaporan-design.md
+- Task 1: complete (commit 3c324e0, review clean; reviewer confirmed all 6 types match brief verbatim, append-only, no existing type modified, style consistent)

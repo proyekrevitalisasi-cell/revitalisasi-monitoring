@@ -27,10 +27,14 @@ export async function GET(request: NextRequest, { params }: { params: { location
     const { user, profile, supabase } = await getSession()
     if (!user || !profile) return unauthorized()
 
+    const weekOffsetParam = request.nextUrl.searchParams.get('weekOffset')
+    const weekOffset = weekOffsetParam ? parseInt(weekOffsetParam, 10) || 0 : 0
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const monday = startOfWeek(today, { weekStartsOn: 1 })
-    const sunday = endOfWeek(today, { weekStartsOn: 1 })
+    const referenceToday = addDays(today, weekOffset * 7)
+    const monday = startOfWeek(referenceToday, { weekStartsOn: 1 })
+    const sunday = endOfWeek(referenceToday, { weekStartsOn: 1 })
     const nextMonday = addDays(monday, 7)
     const nextSunday = addDays(sunday, 7)
 
@@ -68,7 +72,7 @@ export async function GET(request: NextRequest, { params }: { params: { location
 
     const terlambat = allActivities.filter((a) => {
       if (a.status === 'selesai') return false
-      return isBefore(parseISO(a.tanggal_selesai_rencana), today)
+      return isBefore(parseISO(a.tanggal_selesai_rencana), referenceToday)
     })
 
     const ditunda = allActivities.filter((a) => a.status === 'ditunda')

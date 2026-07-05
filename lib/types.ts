@@ -138,3 +138,44 @@ export interface Holiday {
   holiday_date: string
   name: string
 }
+
+export interface Stakeholder {
+  id: string
+  code: string
+  name: string
+  group_name: string
+  display_order: number
+}
+
+export type RaciRole = 'R' | 'A' | 'C' | 'I'
+
+export interface RaciEntry {
+  stakeholder_id: string
+  role: RaciRole
+}
+
+export interface RaciPhase {
+  id: string
+  phase_code: string
+  name: string
+  display_order: number
+  raci_entries: RaciEntry[]
+}
+
+export interface RaciLocation {
+  id: string
+  code: string
+  name: string
+  phases: RaciPhase[]
+}
+
+export interface ReportingItem {
+  id: string
+  display_order: number
+  jenis_laporan: string
+  dari_pic: string
+  kepada: string
+  frekuensi: string
+  isi_konten: string
+  format_media: string
+}

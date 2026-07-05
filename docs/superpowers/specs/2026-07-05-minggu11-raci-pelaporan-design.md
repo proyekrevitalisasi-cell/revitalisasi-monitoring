@@ -43,18 +43,21 @@ punya location selector sendiri di dalam halaman — pola yang sama seperti Work
 (`/workload`, PRD §10.10: "Filter: lokasi").
 
 **Server page (`app/(app)/raci/page.tsx`):**
-- Fetch semua `locations` aktif (`id, code, name`, order by `display_order`).
+- Fetch semua `locations` aktif dengan nested `phases` dan tiap fase nested `raci_entries` dalam
+  satu query (pola sama seperti `WorkloadPage` yang fetch semua lokasi+fase+activities sekaligus,
+  bukan lazy-fetch per interaksi):
+  `locations(id, code, name, phases(id, phase_code, name, display_order, raci_entries(stakeholder_id, role)))`.
 - Fetch semua `stakeholders` aktif (`id, code, name, group_name, display_order`, order by
   `display_order`).
 - Compute `isAdmin` dari session, pass sebagai prop.
-- Tidak fetch phases/raci_entries di server — itu di-load client-side setelah lokasi dipilih.
+- Semua data (lokasi, fase, RACI entries, stakeholder) sudah lengkap di client saat page load —
+  ganti lokasi di `<select>` cuma memfilter data yang sudah ada di memory, tidak ada fetch baru.
+  Cell edit tetap fetch ke `/api/phases/[phaseId]/raci/[stakeholderId]` (satu-satunya panggilan
+  API di halaman ini selain mutasi stakeholder).
 
 **Client (`components/raci/RaciClient.tsx`):**
-- `<select>` lokasi di atas. Saat berubah:
-  - `GET /api/locations/[locationId]/phases` → ambil `id, phase_code, name` tiap fase (abaikan
-    `activities` nested yang ikut terbawa response, tidak dipakai di sini).
-  - Untuk tiap fase, `GET /api/phases/[id]/raci` → entries `{ stakeholder_id, role }`.
-- **Matrix** (`RaciMatrix.tsx`): baris = fase F1–F4 (urut `display_order`), kolom = stakeholder
+- `<select>` lokasi di atas (filter in-memory, bukan fetch — lihat di atas).
+- **Matrix** (`RaciMatrix.tsx`): baris = fase F1–F4 (urut `display_order`) milik lokasi terpilih, kolom = stakeholder
   aktif dikelompokkan visual per `group_name` di header.
 - **Cell** (`RaciCell.tsx`):
   - Admin: dropdown R/A/C/I/— (hapus). `onChange` → `PUT

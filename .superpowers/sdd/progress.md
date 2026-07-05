@@ -457,3 +457,8 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 - Recommendation (not applied, matches existing cpm-runner.ts recommendation from Week 10): RaciClient's handleReorder (swap+sort) and handleCellChanged (filter-then-conditionally-append) are pure array-transform logic living untested inside a component, the same category risk-utils.ts/workload-metrics.ts were extracted-and-Vitest-tested for in prior weeks. Covered by Task 12's E2E, not a merge blocker.
 - Confirmed per-feature delete-dialog duplication (DeleteStakeholderDialog/DeleteReportingItemDialog near-identical to each other and to DeleteRiskDialog/DeleteHolidayDialog) is established codebase precedent, not new debt.
 - Week 11 RACI & Pelaporan COMPLETE (2026-07-05)
+
+## Week 12
+# Plan: docs/superpowers/plans/2026-07-05-minggu12-audit-users.md
+# Spec: docs/superpowers/specs/2026-07-05-minggu12-audit-users-design.md
+- Task 1: complete (commit 3422942, review clean; reviewer confirmed diff is purely additive to existing audit-logs route -- entity_type/user_id/from/to filters untouched, action filter added symmetric with existing pattern, old_value/new_value added to select, 6 new types match brief field-for-field verbatim; verified live via real HTTP calls with session cookie, not just code-reading)

@@ -410,3 +410,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Spec: docs/superpowers/specs/2026-07-05-minggu10-pm-views-design.md
 - Task 1: complete (commit 9d04848, review clean; reviewer independently verified overlap-detection logic and computeProgressPct reuse; minor note accepted: implementer report miscounted field count in prose, code itself correct)
 - Task 2: complete (commit 8597b89, review clean; reviewer programmatically cross-checked all 33 entries against supabase/seed.sql, zero mismatches)
+- Task 3: complete (commit 3b74bdd, review clean; reviewer traced every remaining `today` reference in the file to confirm no stray un-shifted date leaked into the terlambat check or week bounds, confirmed weekOffset=0 is byte-for-byte backward compatible)

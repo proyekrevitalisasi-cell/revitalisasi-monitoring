@@ -6,7 +6,7 @@ import { insertAuditLog } from '@/lib/audit'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { user, profile, supabase } = await getSession()
+    const { user, profile } = await getSession()
     if (!user || !profile) return unauthorized()
     if (!isAdmin(profile.role)) return forbidden()
 
@@ -19,8 +19,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       )
     }
 
-    // Fetch target user
-    const { data: target } = await supabase
+    // Fetch target user. Uses the service-role client: profiles_select's RLS policy is
+    // `is_active = TRUE` only, which would 404 this lookup for the very common "Aktifkan" case
+    // (reactivating a currently-inactive target) since that target's row is invisible to the
+    // anon/session-scoped client while inactive -- found live during Week 12 Task 14's E2E pass.
+    const admin = createAdminClient()
+    const { data: target } = await admin
       .from('profiles')
       .select('id, email, role, full_name, is_active')
       .eq('id', params.id)
@@ -36,7 +40,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     // Note: super_admin escalation prevented at schema level (updateUserSchema only allows 'admin'|'viewer')
 
-    const { data: updated, error } = await supabase
+    // Use the same service-role client for the write: the profiles_update RLS policy only defines
+    // a USING clause (no explicit WITH CHECK), and in practice that does not permit this update to
+    // go through on the anon/session-scoped client even for a fully-authorized actor+target pair
+    // (verified live: get_my_role() correctly returns the actor's role, yet the UPDATE itself is
+    // rejected with a 42501 "new row violates row-level security policy" error) -- all authorization
+    // for this mutation is already fully enforced above in application code (isAdmin, admin-cannot-
+    // touch-non-viewer, admin-cannot-escalate), so bypassing RLS here for the write is safe and
+    // mirrors this same route's existing use of createAdminClient() for auth.admin operations.
+    const { data: updated, error } = await admin
       .from('profiles')
       .update({ ...parsed.data, updated_at: new Date().toISOString() })
       .eq('id', params.id)
@@ -83,13 +95,21 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       )
     }
 
-    await supabase
+    // Use the service-role client for the write -- same profiles_update RLS gap documented in
+    // PATCH above (missing explicit WITH CHECK), verified live to silently no-op this exact
+    // deactivate-via-DELETE path when run on the anon/session-scoped client. Unlike PATCH, this
+    // update previously had no error check at all, so the bug was fully invisible: the route
+    // still signed the target out, wrote a "Nonaktifkan user X" audit log entry, and returned a
+    // 200 success to the client, while is_active silently remained TRUE in the database.
+    const admin = createAdminClient()
+    const { error: updateError } = await admin
       .from('profiles')
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq('id', params.id)
 
+    if (updateError) return serverError()
+
     // Sign out the user
-    const admin = createAdminClient()
     await admin.auth.admin.signOut(params.id)
 
     await insertAuditLog({

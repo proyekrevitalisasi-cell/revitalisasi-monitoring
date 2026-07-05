@@ -6,11 +6,18 @@ import { insertAuditLog } from '@/lib/audit'
 
 export async function GET() {
   try {
-    const { user, profile, supabase } = await getSession()
+    const { user, profile } = await getSession()
     if (!user || !profile) return unauthorized()
     if (!isAdmin(profile.role)) return forbidden()
 
-    const { data, error } = await supabase
+    // Use the service-role client to read: profiles_select's RLS policy is `is_active = TRUE`
+    // only (by design, so a deactivated user's own session immediately loses visibility of their
+    // own profile), but that same policy also hides every deactivated user from this admin-only
+    // management list on the session-scoped client -- found live during Week 12 Task 14's E2E
+    // pass (a user correctly deactivated via the fixed PATCH/DELETE below then vanished from this
+    // GET entirely instead of showing a "Nonaktif" row). isAdmin() above already gates this route.
+    const admin = createAdminClient()
+    const { data, error } = await admin
       .from('profiles')
       .select('id, email, full_name, role, is_active, created_at')
       .order('created_at', { ascending: false })

@@ -436,3 +436,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Plan: docs/superpowers/plans/2026-07-05-minggu11-raci-pelaporan.md
 # Spec: docs/superpowers/specs/2026-07-05-minggu11-raci-pelaporan-design.md
 - Task 1: complete (commit 3c324e0, review clean; reviewer confirmed all 6 types match brief verbatim, append-only, no existing type modified, style consistent)
+- Task 2: complete (commit f151869, review clean; reviewer confirmed byte-for-byte match to DeleteRiskDialog pattern, "×" trigger per PRD, correctly wired to existing DELETE /api/stakeholders/[id])

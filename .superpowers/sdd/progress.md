@@ -462,3 +462,4 @@ Task 1: COMPLETE (commit 4b14fb9, review clean)
 # Plan: docs/superpowers/plans/2026-07-05-minggu12-audit-users.md
 # Spec: docs/superpowers/specs/2026-07-05-minggu12-audit-users-design.md
 - Task 1: complete (commit 3422942, review clean; reviewer confirmed diff is purely additive to existing audit-logs route -- entity_type/user_id/from/to filters untouched, action filter added symmetric with existing pattern, old_value/new_value added to select, 6 new types match brief field-for-field verbatim; verified live via real HTTP calls with session cookie, not just code-reading)
+- Task 2: complete (commit 91916d2, review clean; reviewer confirmed formatValue null-handling, dialog controlled purely by entry!==null, no crash paths on null entry)

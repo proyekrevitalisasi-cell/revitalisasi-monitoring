@@ -114,6 +114,7 @@ export function Sidebar({ profile, locations }: SidebarProps) {
           <>
             <NavLink href={`/dashboard/${currentCode}`} icon="📊" label="Ringkasan" pathname={pathname} exact />
             <NavLink href={`/dashboard/${currentCode}/timeline`} icon="📅" label="Timeline / Gantt" pathname={pathname} />
+            <NavLink href={`/dashboard/${currentCode}/weekly-summary`} icon="🗞️" label="Ringkasan Mingguan" pathname={pathname} />
             <NavLink href={`/dashboard/${currentCode}/fase-1`} icon="📋" label="Fase 1 – Sosialisasi" pathname={pathname} />
             <NavLink href={`/dashboard/${currentCode}/fase-2`} icon="📋" label="Fase 2 – Investor" pathname={pathname} />
             <NavLink href={`/dashboard/${currentCode}/fase-3`} icon="📋" label="Fase 3 – Pemasaran" pathname={pathname} />

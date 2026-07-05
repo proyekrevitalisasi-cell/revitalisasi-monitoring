@@ -75,6 +75,11 @@ export function ReportingItemFormModal({
       return
     }
 
+    if (form.jenis_laporan.trim().length < 2) {
+      toast.error('Jenis laporan minimal 2 karakter')
+      return
+    }
+
     setSubmitting(true)
     try {
       const res =

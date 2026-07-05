@@ -179,3 +179,52 @@ export interface ReportingItem {
   isi_konten: string
   format_media: string
 }
+
+export type UserRole = 'super_admin' | 'admin' | 'viewer'
+
+export interface Profile {
+  id: string
+  email: string
+  full_name: string
+  role: UserRole
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+}
+
+export interface ProfileOption {
+  id: string
+  full_name: string
+  email: string
+}
+
+export interface Location {
+  id: string
+  name: string
+  code: string
+  description: string | null
+  project_start_date: string
+  created_at: string
+}
+
+export type AuditAction =
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'LOGIN'
+  | 'LOGOUT'
+  | 'BASELINE_SAVE'
+  | 'RECALCULATE'
+
+export interface AuditLogEntry {
+  id: string
+  user_email: string
+  user_name: string
+  action: AuditAction
+  entity_type: string
+  entity_id: string | null
+  entity_description: string | null
+  old_value: unknown
+  new_value: unknown
+  created_at: string
+}

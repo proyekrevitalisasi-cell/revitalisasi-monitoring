@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl
     const entity_type = searchParams.get('entity_type')
     const user_id = searchParams.get('user_id')
+    const action = searchParams.get('action')
     const from = searchParams.get('from')
     const to = searchParams.get('to')
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
@@ -18,12 +19,13 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('audit_logs')
-      .select('id, user_email, user_name, action, entity_type, entity_id, entity_description, created_at', { count: 'exact' })
+      .select('id, user_email, user_name, action, entity_type, entity_id, entity_description, old_value, new_value, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
     if (entity_type) query = query.eq('entity_type', entity_type)
     if (user_id) query = query.eq('user_id', user_id)
+    if (action) query = query.eq('action', action)
     if (from) query = query.gte('created_at', from)
     if (to) query = query.lte('created_at', to)
 

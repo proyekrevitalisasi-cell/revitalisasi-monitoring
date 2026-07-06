@@ -86,34 +86,72 @@ test.describe('location CRUD (admin/SA)', () => {
 })
 
 test.describe('activity table (fase page)', () => {
-  test.skip('admin adds, edits inline, locks, and reorders an activity; viewer sees no edit controls', async ({ browser, baseURL }) => {
-    // SKIPPED: Activity creation form submits successfully but the created activity does not appear in the table
-    // This appears to be a real application bug where the activity API returns success but the activity
-    // is not visible in the table after creation. This needs investigation in the backend/frontend.
+  test('admin adds, edits inline, locks, and reorders an activity; viewer sees no edit controls', async ({ browser, baseURL }) => {
     const { locationCode } = getSharedLocation()
     const adminContext = await newRoleContext(browser, baseURL, 'admin')
     const adminPage = await adminContext.newPage()
-    await adminPage.goto(`/dashboard/${locationCode}/fase-1`)
+    let activityId: string | undefined
 
-    await adminPage.getByRole('button', { name: '+ Tambah Kegiatan' }).click()
-    const dialog = adminPage.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    // Fill using id attributes directly
-    await adminPage.locator('#add-kegiatan').fill('E2E Fase Test Activity')
-    await adminPage.locator('#add-pic').fill('E2E Tester')
-    await adminPage.locator('#add-mulai').fill('2026-03-01')
-    await adminPage.locator('#add-selesai').fill('2026-03-05')
-    await dialog.getByRole('button', { name: 'Tambah' }).click()
-    // Dialog successfully closes, indicating form submission was processed
-    await expect(adminPage.getByRole('dialog')).not.toBeVisible({ timeout: 5000 })
-    // NOTE: Activity should appear here but doesn't - application bug in activity visibility
+    try {
+      await adminPage.goto(`/dashboard/${locationCode}/fase-1`)
 
-    await adminContext.close()
+      await adminPage.getByRole('button', { name: '+ Tambah Kegiatan' }).click()
+      const dialog = adminPage.getByRole('dialog')
+      await fillDialogField(dialog, 'Kegiatan', 'E2E Fase Test Activity')
+      await fillDialogField(dialog, 'PIC', 'E2E Tester')
+      await fillDialogField(dialog, 'Rencana Mulai', '2026-03-01')
+      await fillDialogField(dialog, 'Rencana Selesai', '2026-03-05')
+      const [createRes] = await Promise.all([
+        adminPage.waitForResponse(
+          (res) => res.url().endsWith('/activities') && res.request().method() === 'POST'
+        ),
+        dialog.getByRole('button', { name: 'Tambah' }).click(),
+      ])
+      const { data: created } = await createRes.json()
+      activityId = created.id
 
-    const viewerContext = await newRoleContext(browser, baseURL, 'viewer')
-    const viewerPage = await viewerContext.newPage()
-    await viewerPage.goto(`/dashboard/${locationCode}/fase-1`)
-    await expect(viewerPage.getByRole('button', { name: '+ Tambah Kegiatan' })).toHaveCount(0)
-    await viewerContext.close()
+      // An `input[value="..."]` attribute selector (not getByText) is required here: as admin,
+      // ActivityRow renders "Kegiatan"/"PIC" as <Input defaultValue=...>, so the name lives in
+      // an input VALUE, not a text node — getByText can never match it for an admin-rendered
+      // row. (Playwright has no getByDisplayValue — that's a React Testing Library API, not
+      // Playwright's — so we match on the value content attribute instead, which is exactly
+      // what React's `defaultValue` reflects into on initial render.)
+      const row = adminPage.locator('tr', { has: adminPage.locator('input[value="E2E Fase Test Activity"]') })
+      await expect(row).toBeVisible()
+
+      // inline edit: change PIC, wait for the debounced autosave (600ms) to actually round-trip
+      // rather than sleeping a guessed duration — avoids flaking under slow dev-server response times.
+      const picInput = row.locator('input').nth(1)
+      await Promise.all([
+        adminPage.waitForResponse(
+          (res) => res.url().endsWith(`/api/activities/${activityId}`) && res.request().method() === 'PATCH'
+        ),
+        picInput.fill('E2E Tester Updated'),
+      ])
+      await adminPage.reload()
+      const reloadedRow = adminPage.locator('tr', { has: adminPage.locator('input[value="E2E Fase Test Activity"]') })
+      await expect(reloadedRow.locator('input[value="E2E Tester Updated"]')).toBeVisible()
+
+      // lock toggle
+      await reloadedRow.locator('button[title="Toggle kunci tanggal"]').click()
+      await adminPage.waitForTimeout(500)
+
+      await adminContext.close()
+
+      const viewerContext = await newRoleContext(browser, baseURL, 'viewer')
+      const viewerPage = await viewerContext.newPage()
+      await viewerPage.goto(`/dashboard/${locationCode}/fase-1`)
+      await expect(viewerPage.getByRole('button', { name: '+ Tambah Kegiatan' })).toHaveCount(0)
+      // Viewer renders these columns as plain text, so getByText is correct here.
+      await expect(viewerPage.locator('tr', { has: viewerPage.getByText('E2E Fase Test Activity') }).locator('input')).toHaveCount(0)
+      await viewerContext.close()
+    } finally {
+      if (activityId) {
+        const cleanupContext = await newRoleContext(browser, baseURL, 'admin')
+        const cleanupPage = await cleanupContext.newPage()
+        await cleanupPage.request.delete(`${baseURL}/api/activities/${activityId}`)
+        await cleanupContext.close()
+      }
+    }
   })
 })

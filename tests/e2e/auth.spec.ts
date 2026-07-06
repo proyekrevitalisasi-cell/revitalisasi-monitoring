@@ -28,33 +28,40 @@ test.describe('login', () => {
 
   test('deactivated account is blocked at login', async ({ browser, baseURL }) => {
     const email = `e2e.deactivated.${Date.now()}@perumnas.co.id`
-    const adminContext = await newRoleContext(browser, baseURL, 'admin')
-    const adminPage = await adminContext.newPage()
+    let adminContext: any
+    let superadminContext: any
+    let loginContext: any
 
-    const createRes = await adminPage.request.post(`${baseURL}/api/users`, {
-      data: { email, full_name: 'E2E Deactivated User', password: 'Password123!', role: 'viewer' },
-    })
-    expect(createRes.ok()).toBeTruthy()
-    const { data: created } = await createRes.json()
+    try {
+      adminContext = await newRoleContext(browser, baseURL, 'admin')
+      const adminPage = await adminContext.newPage()
 
-    const superadminContext = await newRoleContext(browser, baseURL, 'superadmin')
-    const superadminPage = await superadminContext.newPage()
-    const deactivateRes = await superadminPage.request.delete(`${baseURL}/api/users/${created.id}`)
-    expect(deactivateRes.ok()).toBeTruthy()
+      const createRes = await adminPage.request.post(`${baseURL}/api/users`, {
+        data: { email, full_name: 'E2E Deactivated User', password: 'Password123!', role: 'viewer' },
+      })
+      expect(createRes.ok()).toBeTruthy()
+      const { data: created } = await createRes.json()
 
-    // Use a fresh, unauthenticated context for the login attempt
-    const loginContext = await browser.newContext()
-    const loginPage = await loginContext.newPage()
-    await loginPage.goto(`${baseURL}/login`)
-    await loginPage.getByLabel('Email').fill(email)
-    await loginPage.getByLabel('Password').fill('Password123!')
-    await loginPage.getByRole('button', { name: 'Masuk' }).click()
-    await expect(loginPage.getByText('Akun Anda telah dinonaktifkan')).toBeVisible()
+      superadminContext = await newRoleContext(browser, baseURL, 'superadmin')
+      const superadminPage = await superadminContext.newPage()
+      const deactivateRes = await superadminPage.request.delete(`${baseURL}/api/users/${created.id}`)
+      expect(deactivateRes.ok()).toBeTruthy()
 
-    await adminContext.close()
-    await superadminContext.close()
-    await loginContext.close()
-    await deleteUserByEmail(email)
+      // Use a fresh, unauthenticated context for the login attempt — deliberately
+      // not newRoleContext() since this needs no storageState at all
+      loginContext = await browser.newContext({ baseURL })
+      const loginPage = await loginContext.newPage()
+      await loginPage.goto('/login')
+      await loginPage.getByLabel('Email').fill(email)
+      await loginPage.getByLabel('Password').fill('Password123!')
+      await loginPage.getByRole('button', { name: 'Masuk' }).click()
+      await expect(loginPage.getByText('Akun Anda telah dinonaktifkan')).toBeVisible()
+    } finally {
+      await adminContext?.close()
+      await superadminContext?.close()
+      await loginContext?.close()
+      await deleteUserByEmail(email)
+    }
   })
 
 })

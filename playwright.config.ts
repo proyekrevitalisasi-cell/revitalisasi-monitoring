@@ -30,6 +30,8 @@ export default defineConfig({
     // and fixtures-teardown silently delete the shared fixture after every single run.
     // Run `--project=setup --project=fixtures-setup` once before the suite, and
     // `--project=fixtures-teardown` once at the very end (see the plan's Task 13).
+    // See tests/e2e/README.md for how to run the full suite reliably — bare
+    // `npm run test:e2e` / `playwright test` alone is NOT a safe way to run everything at once.
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },

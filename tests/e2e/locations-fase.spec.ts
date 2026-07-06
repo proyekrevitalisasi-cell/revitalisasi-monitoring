@@ -9,7 +9,12 @@ test.describe('location CRUD (admin/SA)', () => {
   test.use({ storageState: authFile('superadmin') })
 
   test('super_admin creates, edits, and deactivates a location with a digit in its code', async ({ page }) => {
-    const code = 'E2E01' // deliberately contains a digit — regression guard for the Minggu 10 Sidebar routing bug
+    // Timestamp-suffixed per the suite's idempotency rule (fixture codes must never be a fixed
+    // literal, so a mid-run cleanup failure can't wedge the next run with a duplicate-code error).
+    // `locations.code` is capped at 10 chars (lib/validations.ts) and uppercased server-side, so a
+    // full `Date.now()` won't fit — a 6-digit slice does, and (being all digits) it also keeps the
+    // Minggu 10 Sidebar routing regression guard: the code must contain a digit.
+    const code = `E2E${(Date.now() % 900000) + 100000}`
     try {
       await page.goto('/users')
       await page.getByRole('tab', { name: 'Lokasi' }).click()

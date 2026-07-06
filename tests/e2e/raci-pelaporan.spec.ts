@@ -9,17 +9,23 @@ test.describe('RACI', () => {
   test.use({ storageState: authFile('admin') })
 
   test('admin adds a stakeholder, sets a RACI cell, and reorders it', async ({ page }) => {
+    // Timestamp-suffixed per the suite's idempotency rule (fixture codes must never be a fixed
+    // literal, so a mid-run cleanup failure can't wedge the next run with a duplicate-code
+    // error) — same pattern as `audit-users.spec.ts`'s `e2e.user.${Date.now()}@...`.
+    // `stakeholders.code` is capped at 20 chars (lib/validations.ts), which comfortably fits a
+    // prefix plus the full timestamp.
+    const code = `E2ESTK${Date.now()}`
     await page.goto('/raci')
     await page.getByRole('button', { name: '+ Tambah Stakeholder' }).click()
     const dialog = page.getByRole('dialog')
-    await fillDialogField(dialog, 'Kode', 'E2ESH1')
+    await fillDialogField(dialog, 'Kode', code)
     await fillDialogField(dialog, 'Nama', 'E2E Stakeholder')
     await fillDialogField(dialog, 'Grup', 'E2E Group')
     await dialog.getByRole('button', { name: 'Simpan' }).click()
 
-    // Code is a hardcoded literal, known before creation even starts, so cleanup can be
-    // captured immediately and run in `finally` no matter which assertion below fails —
-    // including the very first one confirming creation succeeded.
+    // Code is known before creation even starts, so cleanup can be captured immediately and
+    // run in `finally` no matter which assertion below fails — including the very first one
+    // confirming creation succeeded.
     try {
       // exact match required: the header's own <span title="..."> and the column's
       // "Nonaktifkan <code> — <name>" delete-button title both contain "E2E Stakeholder",
@@ -42,7 +48,7 @@ test.describe('RACI', () => {
       await f1Row.locator('td').last().getByRole('combobox').click()
       await page.getByRole('option', { name: 'R', exact: true }).click()
     } finally {
-      await deleteStakeholderByCode('E2ESH1')
+      await deleteStakeholderByCode(code)
     }
   })
 

@@ -24,6 +24,7 @@
 - **Discovered during Task 3 execution:** in `ActivityTable`/`ActivityRow`, the "Kegiatan" and "PIC" columns render as `<Input defaultValue={...}>` for admin (not plain text) — `page.getByText('some activity name')` will NEVER match these cells under an admin-authenticated context, because input values aren't text nodes. Playwright has no `getByDisplayValue` (that is a React Testing Library API, not Playwright) — use `page.locator(`input[value="some activity name"]`)` instead when locating an activity row by name as admin (React's `defaultValue` reflects into the input's `value` content attribute on initial render). Viewer role renders these columns as plain text, so `getByText` is correct there. This affects every spec that locates an activity row by name while authenticated as admin (Task 4's `dependencies-cpm.spec.ts` draft below has this bug — corrected before dispatch).
 - **Discovered during Task 3 execution:** `tests/e2e/helpers/dialog.ts`'s `resolveField` (used by `fillDialogField`/`selectDialogOption`/`checkDialogCheckbox`) had two bugs, both fixed in Task 3's fix round: (1) the `has:` filter locator must be rooted at `dialog.page()`, not chained off `dialog` itself -- chaining off `dialog` embeds the dialog's own role selector inside the relative `has` match, which can never resolve; (2) the ancestor-div lookup must end in `.last()`, not `.first()` -- document order lists outer container divs before their nested field-wrapper divs, so `.first()` always resolved to the dialog's whole fields wrapper (and thus always its first input) regardless of which label was requested. Every dialog-filling test in Tasks 8/10/11/12 depends on this helper being correct.
 - **Discovered during Task 2 execution:** Supabase Auth rotates refresh tokens on use — once a stored `storageState` file's session is used by any test, the old refresh token in that JSON file is invalidated, so a second `npx playwright test <file>.spec.ts` run against the same `.auth/*.json` files can silently fail (viewer/admin pages redirect to `/login`, links/buttons time out). **Before running any spec file's tests, always re-run `npx playwright test --project=setup` first** to refresh all 3 role storageState files.
+- **Discovered during Task 13 execution:** the above mitigation is necessary but NOT sufficient for a combined multi-file run (e.g. `npx playwright test --project=chromium`, no file filter). Running many spec files back-to-back in one process, all sharing the single `storageState` snapshot taken at the start, produces an unpredictable (non-monotonic — some later files pass fine, some earlier ones fail) pattern of 401/redirect-to-`/login` failures once enough contexts have been created from that snapshot, because Supabase's refresh-token rotation is never written back to the on-disk `.auth/*.json` files. **The only reliable way to run the full suite is one spec file at a time, re-running `--project=setup` immediately before each file** — exactly the loop this project used for every task's own verification (Tasks 2-12) and for Task 13's final full-suite pass. Do not trust a single combined multi-file `chromium` run as a release gate; treat it only as a quick smoke check, and always confirm real failures by re-running the specific failing file in isolation with a fresh login first.
 
 ---
 
@@ -1329,17 +1330,26 @@ git commit -m "test: add E2E coverage for KK consent view/edit gating and autosa
 - Modify: any file where a real bug is found (scope depends on findings)
 - Modify: `tests/e2e/*.spec.ts` (scope depends on findings — flaky selector fixes)
 
-- [ ] **Step 1: Run the complete suite from a clean state**
+- [ ] **Step 1: Run the complete suite from a clean state, one file at a time**
+
+Do NOT run `--project=setup --project=fixtures-setup --project=chromium` combined in one command — combining multiple projects gives no ordering guarantee between them (`chromium` no longer declares `dependencies` on `fixtures-setup`, per the Task 2 fix), and a single long-running combined `chromium` pass across all 11 files exhausts the shared `storageState` snapshot partway through (Supabase's refresh-token rotation is never written back to disk), producing an unpredictable scatter of 401/redirect-to-`/login` failures unrelated to any real bug.
+
+Instead, first create the fixture, then loop file-by-file with a fresh login before each:
 
 ```bash
-npx playwright test --project=setup --project=fixtures-setup --project=chromium
+npx playwright test --project=fixtures-teardown   # start from zero if E2ESH already exists
+npx playwright test --project=setup --project=fixtures-setup
+for f in auth locations-fase dependencies-cpm timeline-gantt baseline-kritis dashboard risks workload-calendar-summary raci-pelaporan audit-users kk-consent; do
+  npx playwright test --project=setup
+  npx playwright test "$f.spec.ts"
+done
 ```
 
-Expected: all specs from Tasks 2-12 PASS.
+Expected: all specs from Tasks 2-12 PASS (timeline-gantt's second test is expected to `test.skip` — see Global Constraints, it's a known, accepted, non-blocking gap: `dependencies-cpm.spec.ts`'s own `afterAll` deletes its dependencies before `timeline-gantt.spec.ts` starts, even when the two files are run back-to-back in the same command).
 
 - [ ] **Step 2: Triage every failure**
 
-For each failure, classify it as one of:
+For each failure, first re-run that single file in isolation with a fresh `--project=setup` immediately before it — if it now passes, the earlier failure was session staleness from a prior combined-run experiment, not a real issue, and no fix is needed. For a failure that persists even in a clean, isolated, freshly-logged-in re-run, classify it as one of:
 - **Selector/test bug** (locator doesn't match real DOM) — fix the spec file directly, re-run just that file, no approval needed.
 - **Real application bug** — note the exact repro (file:line of the assertion, exact error) and check whether the fix touches `createAdminClient()` on a new call site or an authorization guard.
   - If yes: stop, present the bug + proposed fix + justification to the user via `AskUserQuestion`, and only proceed once approved (Global Constraints rule).
@@ -1347,8 +1357,7 @@ For each failure, classify it as one of:
 
 - [ ] **Step 3: Re-run the full suite until green**
 
-Run: `npx playwright test --project=setup --project=fixtures-setup --project=chromium`
-Expected: all PASS, 0 flaky (run twice in a row to confirm no order-dependent flakiness between spec files, since Task 5's dependency-arrow test depends on Task 4's dependency existing at run time).
+Repeat Step 1's file-by-file loop once more. Expected: all PASS (same accepted timeline-gantt skip), 0 unexplained flakiness.
 
 - [ ] **Step 4: Tear down the shared fixture**
 

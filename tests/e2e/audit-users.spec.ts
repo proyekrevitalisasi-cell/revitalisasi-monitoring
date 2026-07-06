@@ -33,21 +33,30 @@ test.describe('Users & Lokasi — Users tab', () => {
     }
   })
 
-  test('admin cannot deactivate self and cannot change own role', async ({ browser, baseURL }) => {
-    const adminContext = await newRoleContext(browser, baseURL, 'admin')
-    const adminPage = await adminContext.newPage()
-    const meRes = await adminPage.request.get(`${baseURL}/api/auth/me`)
-    const { data: me } = await meRes.json()
+  test('super_admin cannot deactivate self and cannot change own role', async ({ browser, baseURL }) => {
+    // Uses a super_admin actor (not admin) so this assertion isolates the self-target guard
+    // (`target.id === user.id` in app/api/users/[id]/route.ts) from the two admin-only rules
+    // that also return a generic forbidden() (admin-cannot-touch-non-viewer, admin-cannot-
+    // escalate-to-admin) -- both of those only trigger `if (profile.role === 'admin')`, so a
+    // super_admin self-PATCH with a payload it would otherwise be fully allowed to make on any
+    // other user (role: 'viewer') can only 403 because of the self-target check.
+    const superadminContext = await newRoleContext(browser, baseURL, 'superadmin')
+    try {
+      const superadminPage = await superadminContext.newPage()
+      const meRes = await superadminPage.request.get(`${baseURL}/api/auth/me`)
+      const { data: me } = await meRes.json()
 
-    await adminPage.goto('/users')
-    const row = adminPage.locator('tr', { has: adminPage.getByText(me.email) })
-    await expect(row.getByRole('button', { name: /Nonaktifkan|Aktifkan/ })).toHaveCount(0)
+      await superadminPage.goto('/users')
+      const row = superadminPage.locator('tr', { has: superadminPage.getByText(me.email) })
+      await expect(row.getByRole('button', { name: /Nonaktifkan|Aktifkan/ })).toHaveCount(0)
 
-    const patchRes = await adminPage.request.patch(`${baseURL}/api/users/${me.id}`, {
-      data: { role: 'admin' },
-    })
-    expect(patchRes.status()).toBe(403)
-    await adminContext.close()
+      const patchRes = await superadminPage.request.patch(`${baseURL}/api/users/${me.id}`, {
+        data: { role: 'viewer' },
+      })
+      expect(patchRes.status()).toBe(403)
+    } finally {
+      await superadminContext.close()
+    }
   })
 })
 
@@ -56,10 +65,13 @@ test.describe('Audit Log', () => {
 
   test('viewer gets 404, admin can filter by action and open the diff modal', async ({ browser, page, baseURL }) => {
     const viewerContext = await newRoleContext(browser, baseURL, 'viewer')
-    const viewerPage = await viewerContext.newPage()
-    const res = await viewerPage.goto('/audit-log')
-    expect(res?.status()).toBe(404)
-    await viewerContext.close()
+    try {
+      const viewerPage = await viewerContext.newPage()
+      const res = await viewerPage.goto('/audit-log')
+      expect(res?.status()).toBe(404)
+    } finally {
+      await viewerContext.close()
+    }
 
     await page.goto('/audit-log')
     await page.getByRole('combobox').filter({ hasText: 'Semua Aksi' }).click()

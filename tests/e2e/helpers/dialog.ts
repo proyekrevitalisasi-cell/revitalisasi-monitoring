@@ -25,7 +25,7 @@ export async function fillDialogField(dialog: Locator, label: string, value: str
   await field.locator('input, textarea').first().fill(value)
 }
 
-export async function selectDialogOption(page: Page, dialog: Locator, label: string, optionText: string) {
+export async function selectDialogOption(page: Page, dialog: Locator, label: string, optionText: string | RegExp) {
   const field = resolveField(dialog, label)
   await field.getByRole('combobox').click()
   await page.getByRole('option', { name: optionText, exact: true }).click()

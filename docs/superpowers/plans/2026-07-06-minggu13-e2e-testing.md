@@ -960,8 +960,11 @@ test.describe('risk register', () => {
     await editDialog.getByRole('button', { name: 'Simpan' }).click()
     await expect(page.getByText('Risiko diperbarui')).toBeVisible()
 
-    // cleanup: hard-delete via API using the row's risk id looked up by title
-    const listRes = await page.request.get(`${baseURL}/api/risks`)
+    // cleanup: hard-delete via API using the row's risk id looked up by title.
+    // NOTE: there is no top-level GET /api/risks — only GET /api/phases/{id}/risks
+    // (list) and PATCH/DELETE /api/risks/{id} exist. Use the phase-scoped list route,
+    // and wrap the whole test body in try/finally so this runs on any assertion failure too.
+    const listRes = await page.request.get(`${baseURL}/api/phases/${getSharedLocation().phases.F1}/risks`)
     const { data: risks } = await listRes.json()
     const created = (risks as Array<{ id: string; title: string }>).find(
       (r) => r.title === 'E2E Risiko Keterlambatan Material'

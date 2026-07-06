@@ -10,69 +10,50 @@ test.describe('location CRUD (admin/SA)', () => {
 
   test('super_admin creates, edits, and deactivates a location with a digit in its code', async ({ page }) => {
     const code = 'E2E01' // deliberately contains a digit — regression guard for the Minggu 10 Sidebar routing bug
-    await page.goto('/users')
-    await page.getByRole('tab', { name: 'Lokasi' }).click()
-    await page.getByRole('button', { name: '+ Tambah Lokasi' }).click()
-    const addDialog = page.getByRole('dialog')
-    await expect(addDialog).toBeVisible()
-    // AddLocationModal doesn't use htmlFor, so use direct locator approach
-    await addDialog.locator('input').nth(0).fill('E2E Lokasi Digit Test')
-    await addDialog.locator('input').nth(1).fill(code)
-    await addDialog.locator('input[type="date"]').fill('2026-02-01')
-    await addDialog.getByRole('button', { name: 'Simpan' }).click()
-    // Wait for the location card's code to be visible (not the select dropdown option)
-    await expect(page.locator('span', { hasText: code })).toBeVisible()
+    try {
+      await page.goto('/users')
+      await page.getByRole('tab', { name: 'Lokasi' }).click()
+      await page.getByRole('button', { name: '+ Tambah Lokasi' }).click()
+      const addDialog = page.getByRole('dialog')
+      await expect(addDialog).toBeVisible()
+      await fillDialogField(addDialog, 'Nama', 'E2E Lokasi Digit Test')
+      await fillDialogField(addDialog, 'Kode', code)
+      await fillDialogField(addDialog, 'Tanggal Mulai Proyek', '2026-02-01')
+      await addDialog.getByRole('button', { name: 'Simpan' }).click()
+      // Wait for the location card's code to be visible (not the select dropdown option)
+      await expect(page.locator('span', { hasText: code })).toBeVisible()
 
-    // regression guard: numeric-containing location code must route correctly (Minggu 10 bug)
-    await page.goto(`/dashboard/${code}/fase-1`)
-    await expect(page.getByRole('button', { name: '+ Tambah Kegiatan' })).toBeVisible()
+      // regression guard: numeric-containing location code must route correctly (Minggu 10 bug)
+      await page.goto(`/dashboard/${code}/fase-1`)
+      await expect(page.getByRole('button', { name: '+ Tambah Kegiatan' })).toBeVisible()
 
-    await page.goto('/users')
-    await page.getByRole('tab', { name: 'Lokasi' }).click()
-    // Find and click Edit button in the card containing this code
-    await page.evaluate((code) => {
-      const spans = Array.from(document.querySelectorAll('span'));
-      const codeSpan = spans.find(s => s.textContent.includes(`(${code})`));
-      if (codeSpan) {
-        let ancestor = codeSpan.parentElement;
-        while (ancestor) {
-          const editBtn = Array.from(ancestor.querySelectorAll('button')).find(b => b.textContent.trim() === 'Edit');
-          if (editBtn) {
-            editBtn.click();
-            return;
-          }
-          ancestor = ancestor.parentElement;
-        }
-      }
-    }, code)
-    const editDialog = page.getByRole('dialog')
-    await expect(editDialog).toBeVisible()
-    await editDialog.locator('input').nth(0).fill('E2E Lokasi Digit Test (Edited)')
-    await editDialog.getByRole('button', { name: 'Simpan' }).click()
-    await expect(page.getByText('E2E Lokasi Digit Test (Edited)')).toBeVisible()
+      await page.goto('/users')
+      await page.getByRole('tab', { name: 'Lokasi' }).click()
+      // Find and click Edit button in the card containing this code
+      const card = page
+        .locator('div', { has: page.getByText(`(${code})`) })
+        .filter({ has: page.getByRole('button', { name: 'Edit' }) })
+        .last()
+      await card.getByRole('button', { name: 'Edit' }).click()
+      const editDialog = page.getByRole('dialog')
+      await expect(editDialog).toBeVisible()
+      await fillDialogField(editDialog, 'Nama', 'E2E Lokasi Digit Test (Edited)')
+      await editDialog.getByRole('button', { name: 'Simpan' }).click()
+      await expect(page.getByText('E2E Lokasi Digit Test (Edited)')).toBeVisible()
 
-    // Find and click Nonaktifkan button in the card containing this code
-    await page.evaluate((code) => {
-      const spans = Array.from(document.querySelectorAll('span'));
-      const codeSpan = spans.find(s => s.textContent.includes(`(${code})`));
-      if (codeSpan) {
-        let ancestor = codeSpan.parentElement;
-        while (ancestor) {
-          const nonaktifkanBtn = Array.from(ancestor.querySelectorAll('button')).find(b => b.textContent.trim() === 'Nonaktifkan');
-          if (nonaktifkanBtn) {
-            nonaktifkanBtn.click();
-            return;
-          }
-          ancestor = ancestor.parentElement;
-        }
-      }
-    }, code)
-    const confirmDialog = page.getByRole('dialog')
-    await expect(confirmDialog).toBeVisible()
-    await confirmDialog.getByRole('button', { name: 'Nonaktifkan' }).click()
-    await expect(page.getByText('E2E Lokasi Digit Test (Edited)')).toHaveCount(0)
-
-    await deleteLocationByCode(code)
+      // Find and click Nonaktifkan button in the card containing this code
+      const cardForDeactivate = page
+        .locator('div', { has: page.getByText(`(${code})`) })
+        .filter({ has: page.getByRole('button', { name: 'Nonaktifkan' }) })
+        .last()
+      await cardForDeactivate.getByRole('button', { name: 'Nonaktifkan' }).click()
+      const confirmDialog = page.getByRole('dialog')
+      await expect(confirmDialog).toBeVisible()
+      await confirmDialog.getByRole('button', { name: 'Nonaktifkan' }).click()
+      await expect(page.getByText('E2E Lokasi Digit Test (Edited)')).toHaveCount(0)
+    } finally {
+      await deleteLocationByCode(code)
+    }
   })
 
   test('admin (not SA) cannot see the Nonaktifkan button', async ({ browser, baseURL }) => {
@@ -87,10 +68,11 @@ test.describe('location CRUD (admin/SA)', () => {
 
 test.describe('activity table (fase page)', () => {
   test('admin adds, edits inline, locks, and reorders an activity; viewer sees no edit controls', async ({ browser, baseURL }) => {
-    const { locationCode } = getSharedLocation()
+    const { locationCode, phases } = getSharedLocation()
     const adminContext = await newRoleContext(browser, baseURL, 'admin')
     const adminPage = await adminContext.newPage()
     let activityId: string | undefined
+    let activityId2: string | undefined
 
     try {
       await adminPage.goto(`/dashboard/${locationCode}/fase-1`)
@@ -136,22 +118,67 @@ test.describe('activity table (fase page)', () => {
       await reloadedRow.locator('button[title="Toggle kunci tanggal"]').click()
       await adminPage.waitForTimeout(500)
 
+      // second activity — added after the first so it starts with the next display_order —
+      // used to verify the ▲ reorder control actually swaps display_order with its
+      // immediate predecessor.
+      await adminPage.getByRole('button', { name: '+ Tambah Kegiatan' }).click()
+      const dialog2 = adminPage.getByRole('dialog')
+      await fillDialogField(dialog2, 'Kegiatan', 'E2E Fase Test Activity 2')
+      await fillDialogField(dialog2, 'PIC', 'E2E Tester 2')
+      await fillDialogField(dialog2, 'Rencana Mulai', '2026-03-06')
+      await fillDialogField(dialog2, 'Rencana Selesai', '2026-03-10')
+      const [createRes2] = await Promise.all([
+        adminPage.waitForResponse(
+          (res) => res.url().endsWith('/activities') && res.request().method() === 'POST'
+        ),
+        dialog2.getByRole('button', { name: 'Tambah' }).click(),
+      ])
+      const { data: created2 } = await createRes2.json()
+      activityId2 = created2.id
+
+      const row2 = adminPage.locator('tr', { has: adminPage.locator('input[value="E2E Fase Test Activity 2"]') })
+      await expect(row2).toBeVisible()
+
+      // reorder: move the second activity up — it should swap display_order with the first
+      await Promise.all([
+        adminPage.waitForResponse(
+          (res) => res.url().endsWith('/api/activities/reorder') && res.request().method() === 'PATCH'
+        ),
+        row2.getByRole('button', { name: '▲' }).click(),
+      ])
+
+      const activitiesRes = await adminPage.request.get(`${baseURL}/api/phases/${phases.F1}/activities`)
+      const { data: phaseActivities } = (await activitiesRes.json()) as {
+        data: Array<{ id: string; display_order: number }>
+      }
+      const order1 = phaseActivities.find((a) => a.id === activityId)?.display_order
+      const order2 = phaseActivities.find((a) => a.id === activityId2)?.display_order
+      expect(order1).not.toBeUndefined()
+      expect(order2).not.toBeUndefined()
+      expect(order2 as number).toBeLessThan(order1 as number)
+
       await adminContext.close()
 
       const viewerContext = await newRoleContext(browser, baseURL, 'viewer')
-      const viewerPage = await viewerContext.newPage()
-      await viewerPage.goto(`/dashboard/${locationCode}/fase-1`)
-      await expect(viewerPage.getByRole('button', { name: '+ Tambah Kegiatan' })).toHaveCount(0)
-      // Viewer renders these columns as plain text, so getByText is correct here.
-      await expect(viewerPage.locator('tr', { has: viewerPage.getByText('E2E Fase Test Activity') }).locator('input')).toHaveCount(0)
-      await viewerContext.close()
-    } finally {
-      if (activityId) {
-        const cleanupContext = await newRoleContext(browser, baseURL, 'admin')
-        const cleanupPage = await cleanupContext.newPage()
-        await cleanupPage.request.delete(`${baseURL}/api/activities/${activityId}`)
-        await cleanupContext.close()
+      try {
+        const viewerPage = await viewerContext.newPage()
+        await viewerPage.goto(`/dashboard/${locationCode}/fase-1`)
+        await expect(viewerPage.getByRole('button', { name: '+ Tambah Kegiatan' })).toHaveCount(0)
+        // Viewer renders these columns as plain text, so getByText is correct here.
+        await expect(viewerPage.locator('tr', { has: viewerPage.getByText('E2E Fase Test Activity') }).locator('input')).toHaveCount(0)
+      } finally {
+        await viewerContext.close()
       }
+    } finally {
+      const cleanupContext = await newRoleContext(browser, baseURL, 'admin')
+      const cleanupPage = await cleanupContext.newPage()
+      if (activityId) {
+        await cleanupPage.request.delete(`${baseURL}/api/activities/${activityId}`)
+      }
+      if (activityId2) {
+        await cleanupPage.request.delete(`${baseURL}/api/activities/${activityId2}`)
+      }
+      await cleanupContext.close()
     }
   })
 })

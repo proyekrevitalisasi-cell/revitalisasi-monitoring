@@ -21,6 +21,7 @@
 - Any bug fix uncovered by E2E that touches `createAdminClient()` on a new call site or changes an authorization guard: **stop and get explicit user approval before dispatching the subagent commit** — this is a standing rule from Minggu 12, the auto-mode security classifier blocks such commits regardless of justification.
 - `fase` URLs are simply `/dashboard/{code}/fase-1` … `/fase-4` (not name-derived slugs).
 - **Discovered during Task 2 execution:** `playwright.config.ts`'s `chromium` project must NOT be wired via `dependencies`/`teardown` to `fixtures-setup`/`fixtures-teardown` — Playwright reruns a project's dependencies and teardown on every invocation of that project, even `npx playwright test onefile.spec.ts`, which made `fixtures-setup` fail on the 2nd run (duplicate location code) and silently deleted the shared `E2ESH` fixture after every single spec-file run. Fixed in `56f8a03`'s follow-up: the `chromium` project now has no `dependencies`/`teardown` field at all.
+- **Discovered during Task 3 execution:** in `ActivityTable`/`ActivityRow`, the "Kegiatan" and "PIC" columns render as `<Input defaultValue={...}>` for admin (not plain text) — `page.getByText('some activity name')` will NEVER match these cells under an admin-authenticated context, because input values aren't text nodes. Use `page.getByDisplayValue('some activity name')` instead when locating an activity row by name as admin. Viewer role renders these columns as plain text, so `getByText` is correct there. This affects every spec that locates an activity row by name while authenticated as admin (Task 4's `dependencies-cpm.spec.ts` draft below has this bug — corrected before dispatch).
 - **Discovered during Task 2 execution:** Supabase Auth rotates refresh tokens on use — once a stored `storageState` file's session is used by any test, the old refresh token in that JSON file is invalidated, so a second `npx playwright test <file>.spec.ts` run against the same `.auth/*.json` files can silently fail (viewer/admin pages redirect to `/login`, links/buttons time out). **Before running any spec file's tests, always re-run `npx playwright test --project=setup` first** to refresh all 3 role storageState files.
 
 ---
@@ -639,7 +640,7 @@ test.describe('dependencies + CPM auto-shift', () => {
     const { locationCode } = getSharedLocation()
     await page.goto(`/dashboard/${locationCode}/fase-1`)
 
-    const rowB = page.locator('tr', { has: page.getByText('E2E CPM Act B') })
+    const rowB = page.locator('tr', { has: page.getByDisplayValue('E2E CPM Act B') })
     await rowB.getByRole('button').filter({ hasText: /^\d+$/ }).click()
     const panel = page.getByRole('dialog', { name: /Dependensi Kegiatan/ })
     await panel.getByRole('tab', { name: /Predecessor/ }).click()
@@ -668,7 +669,7 @@ test.describe('dependencies + CPM auto-shift', () => {
     await page.goto(`/dashboard/${locationCode}/fase-1`)
 
     // A -> B already exists from the previous test; now try B -> A (cycle)
-    const rowA = page.locator('tr', { has: page.getByText('E2E CPM Act A') })
+    const rowA = page.locator('tr', { has: page.getByDisplayValue('E2E CPM Act A') })
     await rowA.getByRole('button').filter({ hasText: /^\d+$/ }).click()
     const panel = page.getByRole('dialog', { name: /Dependensi Kegiatan/ })
     await panel.getByRole('tab', { name: /Predecessor/ }).click()
@@ -687,10 +688,10 @@ test.describe('dependencies + CPM auto-shift', () => {
     await page.request.patch(`${baseURL}/api/activities/${actIdC}/lock`)
 
     await page.goto(`/dashboard/${locationCode}/fase-1`)
-    const rowC = page.locator('tr', { has: page.getByText('E2E CPM Act C') })
+    const rowC = page.locator('tr', { has: page.getByDisplayValue('E2E CPM Act C') })
     const beforeStart = await rowC.locator('input[type="date"]').first().inputValue()
 
-    const rowA = page.locator('tr', { has: page.getByText('E2E CPM Act A') })
+    const rowA = page.locator('tr', { has: page.getByDisplayValue('E2E CPM Act A') })
     await rowA.getByRole('button').filter({ hasText: /^\d+$/ }).click()
     const panel = page.getByRole('dialog', { name: /Dependensi Kegiatan/ })
     await panel.getByRole('tab', { name: /Successor/ }).click()
@@ -709,7 +710,7 @@ test.describe('dependencies + CPM auto-shift', () => {
     expect(shiftedC).toBeFalsy() // date_locked activities are excluded from CPM shifting
 
     await page.reload()
-    const afterStart = await page.locator('tr', { has: page.getByText('E2E CPM Act C') })
+    const afterStart = await page.locator('tr', { has: page.getByDisplayValue('E2E CPM Act C') })
       .locator('input[type="date"]').first().inputValue()
     expect(afterStart).toBe(beforeStart)
   })

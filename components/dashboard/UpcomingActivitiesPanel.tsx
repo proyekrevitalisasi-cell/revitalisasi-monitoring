@@ -1,3 +1,5 @@
+import { formatDateID } from '@/lib/date-format'
+
 interface UpcomingActivity {
   id: string
   kegiatan: string
@@ -20,7 +22,7 @@ export function UpcomingActivitiesPanel({ activities }: UpcomingActivitiesPanelP
         <li key={activity.id} className="py-2 flex justify-between text-sm">
           <span className="text-gray-900">{activity.kegiatan}</span>
           <span className="text-gray-500">
-            {activity.pic} · {activity.tanggalMulaiRencana}
+            {activity.pic} · {formatDateID(activity.tanggalMulaiRencana)}
           </span>
         </li>
       ))}

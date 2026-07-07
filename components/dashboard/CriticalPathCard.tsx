@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { formatDateID } from '@/lib/date-format'
 
 interface CriticalPathCardProps {
   criticalCount: number
@@ -17,7 +18,7 @@ export function CriticalPathCard({ criticalCount, finishDate }: CriticalPathCard
           <div className="text-xs text-gray-500">kegiatan kritis</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-medium text-gray-900">{finishDate ?? '–'}</div>
+          <div className="text-sm font-medium text-gray-900">{finishDate ? formatDateID(finishDate) : '–'}</div>
           <div className="text-xs text-gray-500">estimasi selesai proyek</div>
         </div>
       </CardContent>

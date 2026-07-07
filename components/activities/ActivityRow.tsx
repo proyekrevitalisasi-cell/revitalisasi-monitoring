@@ -12,6 +12,7 @@ import { DependencyPanel } from './DependencyPanel'
 import { computeDurasiHK } from '@/lib/calendar'
 import { computeDeviationDays } from '@/lib/gantt-layout'
 import { validateRencanaDates, validateRealisasiDates } from '@/lib/activity-helpers'
+import { formatDateID } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 import type { Activity, CpmSummary, Dependency, LocationActivitySummary, BaselineActivitySnapshot } from '@/lib/types'
 
@@ -205,7 +206,7 @@ export function ActivityRow({
         )}
       </TableCell>
       <TableCell className="text-center text-gray-500">{durasiHK}</TableCell>
-      <TableCell className="text-gray-500">{baseline?.tanggal_mulai_rencana ?? '–'}</TableCell>
+      <TableCell className="text-gray-500">{baseline ? formatDateID(baseline.tanggal_mulai_rencana) : '–'}</TableCell>
       <TableCell className="text-center text-gray-500">
         {deviation === null ? '–' : deviation > 0 ? `+${deviation}` : deviation}
       </TableCell>

@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDateID } from '@/lib/date-format'
 import type { ActivityStatus } from '@/lib/types'
 
 export interface ActivityIssueRow {
@@ -47,7 +48,7 @@ export function ActivityIssueTable({ issues, showLocation }: ActivityIssueTableP
             <TableCell className="text-xs text-gray-500">{issue.phaseCode}</TableCell>
             <TableCell>{issue.kegiatan}</TableCell>
             <TableCell className="text-gray-500">{issue.pic}</TableCell>
-            <TableCell className="text-gray-500">{issue.tanggalSelesaiRencana}</TableCell>
+            <TableCell className="text-gray-500">{formatDateID(issue.tanggalSelesaiRencana)}</TableCell>
             <TableCell>
               {issue.status === 'ditunda' ? (
                 <Badge variant="secondary">Ditunda</Badge>

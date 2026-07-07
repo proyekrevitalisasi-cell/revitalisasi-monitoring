@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { formatDateID } from '@/lib/date-format'
 import type { Baseline } from '@/lib/types'
 
 interface BaselinePanelProps {
@@ -110,13 +111,7 @@ export function BaselinePanel({ locationId, baselines }: BaselinePanelProps) {
             <div key={b.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
               <div>
                 <p className="font-medium">{b.name}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(b.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </p>
+                <p className="text-xs text-gray-500">{formatDateID(b.created_at)}</p>
               </div>
               {b.is_active ? (
                 <Badge>Aktif</Badge>

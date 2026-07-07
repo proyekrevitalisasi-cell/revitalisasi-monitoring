@@ -99,7 +99,7 @@ export function KkConsentForm({ locationId, initialData, isAdmin }: KkConsentFor
             <Input
               type="number"
               min={0}
-              defaultValue={data.target_kk}
+              value={data.target_kk}
               onChange={(e) =>
                 handleFieldChange({ target_kk: Math.max(0, Math.round(Number(e.target.value) || 0)) })
               }
@@ -118,7 +118,7 @@ export function KkConsentForm({ locationId, initialData, isAdmin }: KkConsentFor
             <Input
               type="number"
               min={0}
-              defaultValue={data.setuju}
+              value={data.setuju}
               onChange={(e) =>
                 handleFieldChange({ setuju: Math.max(0, Math.round(Number(e.target.value) || 0)) })
               }
@@ -133,7 +133,7 @@ export function KkConsentForm({ locationId, initialData, isAdmin }: KkConsentFor
             <Input
               type="number"
               min={0}
-              defaultValue={data.menolak}
+              value={data.menolak}
               onChange={(e) =>
                 handleFieldChange({ menolak: Math.max(0, Math.round(Number(e.target.value) || 0)) })
               }
@@ -148,7 +148,7 @@ export function KkConsentForm({ locationId, initialData, isAdmin }: KkConsentFor
         <Label>Catatan</Label>
         {isAdmin ? (
           <Textarea
-            defaultValue={data.catatan ?? ''}
+            value={data.catatan ?? ''}
             onChange={(e) => handleFieldChange({ catatan: e.target.value || null })}
             rows={3}
           />

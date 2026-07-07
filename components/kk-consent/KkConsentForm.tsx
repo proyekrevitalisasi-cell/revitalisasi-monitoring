@@ -23,6 +23,7 @@ export function KkConsentForm({ locationId, initialData, isAdmin }: KkConsentFor
   const [data, setData] = useState<KkConsent>(initialData)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const pendingChanges = useRef<Partial<EditableFields>>({})
+  const savedSnapshot = useRef<KkConsent>(initialData)
 
   const setStatus = useCallback((status: SaveStatus) => {
     setSaveStatus(status)
@@ -51,9 +52,11 @@ export function KkConsentForm({ locationId, initialData, isAdmin }: KkConsentFor
       if (!res.ok || json.error) {
         throw new Error(json.error?.message ?? 'Gagal menyimpan')
       }
+      savedSnapshot.current = json.data as KkConsent
       setData(json.data as KkConsent)
       setStatus('saved')
     } catch (err) {
+      setData(savedSnapshot.current)
       setStatus('error')
       toast.error(err instanceof Error ? err.message : 'Gagal menyimpan')
     }

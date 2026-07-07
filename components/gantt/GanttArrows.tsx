@@ -70,7 +70,10 @@ export function GanttArrows({
       <svg className="absolute left-0 top-0 pointer-events-none" width={totalWidth} height={totalHeight}>
         <defs>
           <marker id="gantt-arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#898781" />
+            <path d="M0,0 L6,3 L0,6 Z" fill={BASELINE_COLOR} />
+          </marker>
+          <marker id="gantt-arrowhead-critical" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill={CRITICAL_COLOR} />
           </marker>
         </defs>
         {arrows.map(({ dep, pathD, isCritical }) => (
@@ -80,15 +83,18 @@ export function GanttArrows({
               fill="none"
               stroke="transparent"
               strokeWidth={10}
+              tabIndex={0}
               onMouseEnter={() => setHoveredDepId(dep.id)}
               onMouseLeave={() => setHoveredDepId((current) => (current === dep.id ? null : current))}
+              onFocus={() => setHoveredDepId(dep.id)}
+              onBlur={() => setHoveredDepId((current) => (current === dep.id ? null : current))}
             />
             <path
               d={pathD}
               fill="none"
               stroke={isCritical ? CRITICAL_COLOR : BASELINE_COLOR}
               strokeWidth={1.5}
-              markerEnd="url(#gantt-arrowhead)"
+              markerEnd={isCritical ? 'url(#gantt-arrowhead-critical)' : 'url(#gantt-arrowhead)'}
               className="pointer-events-none"
             />
           </g>

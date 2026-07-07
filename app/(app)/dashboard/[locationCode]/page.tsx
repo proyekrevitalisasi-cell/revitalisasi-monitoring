@@ -10,8 +10,7 @@ import {
   computeProgressPct,
   computeStatusCounts,
   computeProjectFinishDate,
-  isNeedsAttention,
-  computeOverdueDays,
+  buildActivityIssueRows,
 } from '@/lib/dashboard-metrics'
 import type { Phase, ActivityStatus, KkConsent } from '@/lib/types'
 
@@ -85,21 +84,7 @@ export default async function LocationDashboardPage({
       tanggalMulaiRencana: a.tanggal_mulai_rencana,
     }))
 
-  const issues: ActivityIssueRow[] = phases
-    .flatMap((phase) =>
-      phase.activities
-        .filter((a) => isNeedsAttention(a, today))
-        .map((a) => ({
-          activityId: a.id,
-          kegiatan: a.kegiatan,
-          pic: a.pic,
-          phaseCode: phase.phase_code,
-          tanggalSelesaiRencana: a.tanggal_selesai_rencana,
-          status: a.status,
-          overdueDays: computeOverdueDays(a.tanggal_selesai_rencana, today),
-        }))
-    )
-    .sort((a, b) => b.overdueDays - a.overdueDays)
+  const issues: ActivityIssueRow[] = buildActivityIssueRows(phases, today)
 
   return (
     <div className="space-y-8">

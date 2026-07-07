@@ -25,6 +25,11 @@ export function computeStatusCounts(
   }
 }
 
+// Same-day-due activities are treated as needing attention as soon as any
+// time passes past midnight (this compares against a live `today` Date, not
+// a start-of-day-normalized one). Confirmed intentional -- an activity due
+// "today" should already show up as needing attention, not wait until the
+// day is over.
 export function isNeedsAttention(
   activity: { status: ActivityStatus; tanggal_selesai_rencana: string },
   today: Date
@@ -46,4 +51,36 @@ export function computeProjectFinishDate(
     (max, a) => (a.tanggal_selesai_rencana > max ? a.tanggal_selesai_rencana : max),
     activities[0].tanggal_selesai_rencana
   )
+}
+
+export function buildActivityIssueRows(
+  phaseGroups: Array<{
+    phase_code: string
+    activities: Array<{
+      id: string
+      kegiatan: string
+      pic: string
+      status: ActivityStatus
+      tanggal_selesai_rencana: string
+    }>
+  }>,
+  today: Date,
+  locationMeta?: { locationName: string; locationCode: string }
+) {
+  return phaseGroups
+    .flatMap((phase) =>
+      phase.activities
+        .filter((a) => isNeedsAttention(a, today))
+        .map((a) => ({
+          activityId: a.id,
+          kegiatan: a.kegiatan,
+          pic: a.pic,
+          phaseCode: phase.phase_code,
+          tanggalSelesaiRencana: a.tanggal_selesai_rencana,
+          status: a.status,
+          overdueDays: computeOverdueDays(a.tanggal_selesai_rencana, today),
+          ...(locationMeta ?? {}),
+        }))
+    )
+    .sort((a, b) => b.overdueDays - a.overdueDays)
 }

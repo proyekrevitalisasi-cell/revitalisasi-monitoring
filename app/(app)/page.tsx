@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { LocationSummaryCard } from '@/components/dashboard/LocationSummaryCard'
 import { ComparativeTable } from '@/components/dashboard/ComparativeTable'
 import { ActivityIssueTable, type ActivityIssueRow } from '@/components/dashboard/ActivityIssueTable'
-import { isNeedsAttention, computeOverdueDays } from '@/lib/dashboard-metrics'
+import { buildActivityIssueRows } from '@/lib/dashboard-metrics'
 import type { Phase, ActivityStatus } from '@/lib/types'
 
 interface LocationWithPhases {
@@ -45,21 +45,10 @@ export default async function HomePage() {
 
   const issues: ActivityIssueRow[] = locations
     .flatMap((location) =>
-      location.phases.flatMap((phase) =>
-        phase.activities
-          .filter((a) => isNeedsAttention(a, today))
-          .map((a) => ({
-            activityId: a.id,
-            kegiatan: a.kegiatan,
-            pic: a.pic,
-            phaseCode: phase.phase_code,
-            tanggalSelesaiRencana: a.tanggal_selesai_rencana,
-            status: a.status,
-            overdueDays: computeOverdueDays(a.tanggal_selesai_rencana, today),
-            locationName: location.name,
-            locationCode: location.code,
-          }))
-      )
+      buildActivityIssueRows(location.phases, today, {
+        locationName: location.name,
+        locationCode: location.code,
+      })
     )
     .sort((a, b) => b.overdueDays - a.overdueDays)
 

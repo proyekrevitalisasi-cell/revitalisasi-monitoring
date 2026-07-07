@@ -5,6 +5,7 @@ import {
   isNeedsAttention,
   computeOverdueDays,
   computeProjectFinishDate,
+  buildActivityIssueRows,
 } from './dashboard-metrics'
 
 describe('computeProgressPct', () => {
@@ -105,5 +106,54 @@ describe('computeProjectFinishDate', () => {
       { tanggal_selesai_rencana: '2026-08-15' },
     ]
     expect(computeProjectFinishDate(activities)).toBe('2026-09-01')
+  })
+})
+
+describe('buildActivityIssueRows', () => {
+  const today = new Date('2026-07-10')
+
+  it('filters to only needs-attention activities, sorted most-overdue-first', () => {
+    const phaseGroups = [
+      {
+        phase_code: 'F1',
+        activities: [
+          { id: 'a1', kegiatan: 'Kegiatan A', pic: 'Budi', status: 'sedang_berjalan' as const, tanggal_selesai_rencana: '2026-07-01' },
+          { id: 'a2', kegiatan: 'Kegiatan B', pic: 'Sari', status: 'selesai' as const, tanggal_selesai_rencana: '2026-07-05' },
+          { id: 'a3', kegiatan: 'Kegiatan C', pic: 'Budi', status: 'ditunda' as const, tanggal_selesai_rencana: '2026-08-01' },
+        ],
+      },
+    ]
+    const rows = buildActivityIssueRows(phaseGroups, today)
+    expect(rows.map((r) => r.activityId)).toEqual(['a1', 'a3'])
+    expect(rows[0].overdueDays).toBe(9)
+    expect(rows[0].phaseCode).toBe('F1')
+  })
+
+  it('attaches locationName/locationCode when locationMeta is given', () => {
+    const phaseGroups = [
+      {
+        phase_code: 'F1',
+        activities: [
+          { id: 'a1', kegiatan: 'Kegiatan A', pic: 'Budi', status: 'ditunda' as const, tanggal_selesai_rencana: '2026-08-01' },
+        ],
+      },
+    ]
+    const rows = buildActivityIssueRows(phaseGroups, today, { locationName: 'Tebet A', locationCode: 'TA' })
+    expect(rows[0].locationName).toBe('Tebet A')
+    expect(rows[0].locationCode).toBe('TA')
+  })
+
+  it('omits locationName/locationCode when locationMeta is not given', () => {
+    const phaseGroups = [
+      {
+        phase_code: 'F1',
+        activities: [
+          { id: 'a1', kegiatan: 'Kegiatan A', pic: 'Budi', status: 'ditunda' as const, tanggal_selesai_rencana: '2026-08-01' },
+        ],
+      },
+    ]
+    const rows = buildActivityIssueRows(phaseGroups, today)
+    expect(rows[0].locationName).toBeUndefined()
+    expect(rows[0].locationCode).toBeUndefined()
   })
 })

@@ -12,22 +12,8 @@ import {
 import { RiskMatrix } from './RiskMatrix'
 import { RiskTable } from './RiskTable'
 import { RiskFormModal } from './RiskFormModal'
-import type { RiskWithPhase, RiskCategory, RiskStatus, RiskPhaseOption } from '@/lib/types'
-
-const CATEGORY_OPTIONS: Array<{ value: RiskCategory; label: string }> = [
-  { value: 'teknis', label: 'Teknis' },
-  { value: 'hukum', label: 'Hukum' },
-  { value: 'keuangan', label: 'Keuangan' },
-  { value: 'sosial', label: 'Sosial' },
-  { value: 'lingkungan', label: 'Lingkungan' },
-  { value: 'lainnya', label: 'Lainnya' },
-]
-
-const STATUS_OPTIONS: Array<{ value: RiskStatus; label: string }> = [
-  { value: 'open', label: 'Open' },
-  { value: 'mitigated', label: 'Mitigated' },
-  { value: 'closed', label: 'Closed' },
-]
+import type { RiskWithPhase, RiskPhaseOption } from '@/lib/types'
+import { RISK_CATEGORY_OPTIONS, RISK_STATUS_OPTIONS } from '@/lib/risk-labels'
 
 interface RiskRegisterClientProps {
   initialRisks: RiskWithPhase[]
@@ -119,7 +105,7 @@ export function RiskRegisterClient({ initialRisks, phases, isAdmin }: RiskRegist
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                {STATUS_OPTIONS.map((s) => (
+                {RISK_STATUS_OPTIONS.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
                     {s.label}
                   </SelectItem>
@@ -135,7 +121,7 @@ export function RiskRegisterClient({ initialRisks, phases, isAdmin }: RiskRegist
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Kategori</SelectItem>
-                {CATEGORY_OPTIONS.map((c) => (
+                {RISK_CATEGORY_OPTIONS.map((c) => (
                   <SelectItem key={c.value} value={c.value}>
                     {c.label}
                   </SelectItem>

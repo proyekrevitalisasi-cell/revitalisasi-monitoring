@@ -21,21 +21,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import type { RiskCategory, RiskStatus, RiskWithPhase, RiskPhaseOption } from '@/lib/types'
-
-const CATEGORIES: Array<{ value: RiskCategory; label: string }> = [
-  { value: 'teknis', label: 'Teknis' },
-  { value: 'hukum', label: 'Hukum' },
-  { value: 'keuangan', label: 'Keuangan' },
-  { value: 'sosial', label: 'Sosial' },
-  { value: 'lingkungan', label: 'Lingkungan' },
-  { value: 'lainnya', label: 'Lainnya' },
-]
-
-const STATUSES: Array<{ value: RiskStatus; label: string }> = [
-  { value: 'open', label: 'Open' },
-  { value: 'mitigated', label: 'Mitigated' },
-  { value: 'closed', label: 'Closed' },
-]
+import { RISK_CATEGORY_OPTIONS, RISK_STATUS_OPTIONS } from '@/lib/risk-labels'
 
 const LEVELS = [1, 2, 3, 4, 5]
 
@@ -213,7 +199,7 @@ export function RiskFormModal({ open, onOpenChange, phases, risk, onSaved }: Ris
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
+                  {RISK_CATEGORY_OPTIONS.map((c) => (
                     <SelectItem key={c.value} value={c.value}>
                       {c.label}
                     </SelectItem>
@@ -282,7 +268,7 @@ export function RiskFormModal({ open, onOpenChange, phases, risk, onSaved }: Ris
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map((s) => (
+                    {RISK_STATUS_OPTIONS.map((s) => (
                       <SelectItem key={s.value} value={s.value}>
                         {s.label}
                       </SelectItem>

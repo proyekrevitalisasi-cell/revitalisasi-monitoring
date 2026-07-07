@@ -22,21 +22,7 @@ import { DeleteRiskDialog } from './DeleteRiskDialog'
 import { getScoreBandClasses } from '@/lib/risk-utils'
 import { cn } from '@/lib/utils'
 import type { RiskWithPhase } from '@/lib/types'
-
-const CATEGORY_LABELS: Record<RiskWithPhase['category'], string> = {
-  teknis: 'Teknis',
-  hukum: 'Hukum',
-  keuangan: 'Keuangan',
-  sosial: 'Sosial',
-  lingkungan: 'Lingkungan',
-  lainnya: 'Lainnya',
-}
-
-const STATUS_LABELS: Record<RiskWithPhase['status'], string> = {
-  open: 'Open',
-  mitigated: 'Mitigated',
-  closed: 'Closed',
-}
+import { RISK_CATEGORY_LABELS, RISK_STATUS_LABELS } from '@/lib/risk-labels'
 
 const LEVELS = [1, 2, 3, 4, 5]
 
@@ -116,7 +102,7 @@ export function RiskTable({ risks, isAdmin, onUpdated, onDeleted, onEditRequeste
                 )}
               </TableCell>
               <TableCell>
-                <Badge variant="secondary">{CATEGORY_LABELS[risk.category]}</Badge>
+                <Badge variant="secondary">{RISK_CATEGORY_LABELS[risk.category]}</Badge>
               </TableCell>
               <TableCell className="text-xs text-gray-500">{risk.phaseCode}</TableCell>
               <TableCell>
@@ -179,7 +165,7 @@ export function RiskTable({ risks, isAdmin, onUpdated, onDeleted, onEditRequeste
               <TableCell className="text-gray-500">{risk.owner ?? '–'}</TableCell>
               <TableCell>
                 <Badge variant={risk.status === 'closed' ? 'secondary' : 'outline'}>
-                  {STATUS_LABELS[risk.status]}
+                  {RISK_STATUS_LABELS[risk.status]}
                 </Badge>
               </TableCell>
               {isAdmin && (

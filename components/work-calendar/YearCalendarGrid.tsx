@@ -1,5 +1,6 @@
 'use client'
 
+import type { KeyboardEvent } from 'react'
 import {
   eachMonthOfInterval,
   eachDayOfInterval,
@@ -65,6 +66,18 @@ export function YearCalendarGrid({ year, holidays, onDeleted }: YearCalendarGrid
                       holiday ? 'bg-red-100 text-red-700 font-medium cursor-pointer' : 'text-gray-700'
                     )}
                     title={holiday?.name}
+                    {...(holiday
+                      ? {
+                          tabIndex: 0,
+                          role: 'button' as const,
+                          onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              e.currentTarget.click()
+                            }
+                          },
+                        }
+                      : {})}
                   >
                     {format(day, 'd')}
                   </div>

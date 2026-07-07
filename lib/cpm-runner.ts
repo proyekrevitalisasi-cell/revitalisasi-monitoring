@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { runCpm, cpmStartToDate, cpmFinishToDate, type CpmActivity, type CpmDependency } from '@/lib/cpm'
+import { runCpm, cpmStartToDate, cpmFinishToDate, type CpmActivity, type CpmDependency, type CpmNode } from '@/lib/cpm'
 import { computeDurasiHK } from '@/lib/calendar'
 import { insertAuditLog } from '@/lib/audit'
 import type { CpmSummary } from '@/lib/types'
@@ -24,6 +24,65 @@ interface CpmRunResult {
   hasCycle: boolean
   cycleIds: string[]
   shiftedCount: number
+}
+
+export interface CpmUpdateInput {
+  id: string
+  tanggal_mulai_rencana: string
+  tanggal_selesai_rencana: string
+  date_locked: boolean
+  is_on_critical_path: boolean
+  total_float_days: number
+}
+
+export interface CpmUpdateResult {
+  updates: Record<string, unknown>
+  mulai: string
+  selesai: string
+  shifted: boolean
+  changed: boolean
+}
+
+// Only bump updated_at/updated_by when this activity's CPM-derived state
+// actually changed. Every holiday/dependency/activity edit anywhere
+// re-runs CPM for the WHOLE location (runCpmForAllActiveLocations re-runs
+// it for EVERY active location), which previously stamped updated_at on
+// every activity unconditionally -- including already-`selesai` ones that
+// nothing happened to. Weekly Summary's "Selesai Minggu Ini" panel reads
+// updated_at as "completed this week," so a totally unrelated admin
+// action (e.g. adding a national holiday next year) was silently making
+// long-completed activities in every other location look freshly done.
+export function computeActivityCpmUpdate(
+  activity: CpmUpdateInput,
+  node: CpmNode,
+  projectStart: Date,
+  holidays: Date[]
+): CpmUpdateResult {
+  let mulai = activity.tanggal_mulai_rencana
+  let selesai = activity.tanggal_selesai_rencana
+  let shifted = false
+
+  if (!activity.date_locked) {
+    mulai = format(cpmStartToDate(node.earliestStart, projectStart, holidays), 'yyyy-MM-dd')
+    selesai = format(cpmFinishToDate(node.earliestFinish, projectStart, holidays), 'yyyy-MM-dd')
+    shifted = mulai !== activity.tanggal_mulai_rencana || selesai !== activity.tanggal_selesai_rencana
+  }
+
+  const updates: Record<string, unknown> = {
+    is_on_critical_path: node.isCritical,
+    total_float_days: node.totalFloat,
+  }
+  if (!activity.date_locked) {
+    updates.tanggal_mulai_rencana = mulai
+    updates.tanggal_selesai_rencana = selesai
+  }
+
+  const changed =
+    shifted ||
+    activity.is_on_critical_path !== node.isCritical ||
+    activity.total_float_days !== node.totalFloat
+
+  return { updates, mulai, selesai, shifted, changed }
 }
 
 type PhaseEmbed = { location_id: string } | { location_id: string }[] | null
@@ -164,38 +223,12 @@ export async function runCpmForLocation(
       const node = result.nodes.get(activity.id)
       if (!node) return null
 
-      let mulai = activity.tanggal_mulai_rencana
-      let selesai = activity.tanggal_selesai_rencana
-      let shifted = false
-
-      if (!activity.date_locked) {
-        mulai = format(cpmStartToDate(node.earliestStart, projectStart, holidays), 'yyyy-MM-dd')
-        selesai = format(cpmFinishToDate(node.earliestFinish, projectStart, holidays), 'yyyy-MM-dd')
-        shifted = mulai !== activity.tanggal_mulai_rencana || selesai !== activity.tanggal_selesai_rencana
-      }
-
-      const updates: Record<string, unknown> = {
-        is_on_critical_path: node.isCritical,
-        total_float_days: node.totalFloat,
-      }
-      if (!activity.date_locked) {
-        updates.tanggal_mulai_rencana = mulai
-        updates.tanggal_selesai_rencana = selesai
-      }
-
-      // Only bump updated_at/updated_by when this activity's CPM-derived state
-      // actually changed. Every holiday/dependency/activity edit anywhere
-      // re-runs CPM for the WHOLE location (runCpmForAllActiveLocations re-runs
-      // it for EVERY active location), which previously stamped updated_at on
-      // every activity unconditionally -- including already-`selesai` ones that
-      // nothing happened to. Weekly Summary's "Selesai Minggu Ini" panel reads
-      // updated_at as "completed this week," so a totally unrelated admin
-      // action (e.g. adding a national holiday next year) was silently making
-      // long-completed activities in every other location look freshly done.
-      const changed =
-        shifted ||
-        activity.is_on_critical_path !== node.isCritical ||
-        activity.total_float_days !== node.totalFloat
+      const { updates, mulai, selesai, shifted, changed } = computeActivityCpmUpdate(
+        activity,
+        node,
+        projectStart,
+        holidays
+      )
       if (changed) {
         updates.updated_by = actor.id
         updates.updated_at = new Date().toISOString()

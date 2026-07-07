@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { RaciMatrix } from './RaciMatrix'
 import { AddStakeholderModal } from './AddStakeholderModal'
 import type { RaciLocation, RaciRole, Stakeholder } from '@/lib/types'
+import { applyRaciCellChange, swapStakeholderOrder } from '@/lib/raci-utils'
 
 interface RaciClientProps {
   locations: RaciLocation[]
@@ -31,48 +32,27 @@ export function RaciClient({ locations, initialStakeholders, isAdmin }: RaciClie
     : []
 
   function handleCellChanged(phaseId: string, stakeholderId: string, role: RaciRole | null) {
-    setLocationsState((prev) =>
-      prev.map((loc) => ({
-        ...loc,
-        phases: loc.phases.map((phase) => {
-          if (phase.id !== phaseId) return phase
-          const withoutEntry = phase.raci_entries.filter((e) => e.stakeholder_id !== stakeholderId)
-          return {
-            ...phase,
-            raci_entries: role
-              ? [...withoutEntry, { stakeholder_id: stakeholderId, role }]
-              : withoutEntry,
-          }
-        }),
-      }))
-    )
+    setLocationsState((prev) => applyRaciCellChange(prev, phaseId, stakeholderId, role))
   }
 
   async function handleReorder(stakeholderId: string, direction: 'up' | 'down') {
-    const index = stakeholders.findIndex((s) => s.id === stakeholderId)
-    const neighborIndex = direction === 'up' ? index - 1 : index + 1
-    if (index === -1 || neighborIndex < 0 || neighborIndex >= stakeholders.length) return
-
-    const current = stakeholders[index]
-    const neighbor = stakeholders[neighborIndex]
     const previous = stakeholders
+    const result = swapStakeholderOrder(stakeholders, stakeholderId, direction)
+    if (!result) return
+    setStakeholders(result.stakeholders)
 
-    const swapped = [...stakeholders]
-    swapped[index] = { ...neighbor, display_order: current.display_order }
-    swapped[neighborIndex] = { ...current, display_order: neighbor.display_order }
-    setStakeholders(swapped.sort((a, b) => a.display_order - b.display_order))
-
+    const [swappedCurrent, swappedNeighbor] = result.swapped
     try {
       const [res1, res2] = await Promise.all([
-        fetch(`/api/stakeholders/${current.id}`, {
+        fetch(`/api/stakeholders/${swappedCurrent.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ display_order: neighbor.display_order }),
+          body: JSON.stringify({ display_order: swappedCurrent.display_order }),
         }),
-        fetch(`/api/stakeholders/${neighbor.id}`, {
+        fetch(`/api/stakeholders/${swappedNeighbor.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ display_order: current.display_order }),
+          body: JSON.stringify({ display_order: swappedNeighbor.display_order }),
         }),
       ])
       const [json1, json2] = await Promise.all([res1.json(), res2.json()])

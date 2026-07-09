@@ -184,8 +184,14 @@ export function cpmStartToDate(earliestStart: number, projectStart: Date, holida
   return addWorkingDays(projectStart, earliestStart, holidays)
 }
 
-export function cpmFinishToDate(earliestFinish: number, projectStart: Date, holidays: Date[]): Date {
-  return addWorkingDays(projectStart, earliestFinish - 1, holidays)
+export function cpmFinishToDate(earliestStart: number, earliestFinish: number, projectStart: Date, holidays: Date[]): Date {
+  // The "-1" converts a working-day count to a 0-indexed offset, valid only
+  // when at least 1 day was consumed (duration >= 1, so earliestFinish >
+  // earliestStart). For a zero-duration milestone, earliestFinish equals
+  // earliestStart, and the plain "-1" would land one working day BEFORE the
+  // start date. Clamping to earliestStart makes a milestone's finish date
+  // equal its start date instead.
+  return addWorkingDays(projectStart, Math.max(earliestFinish - 1, earliestStart), holidays)
 }
 
 function backwardPass(

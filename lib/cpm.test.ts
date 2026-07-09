@@ -146,7 +146,7 @@ describe('date conversion', () => {
   it('cpmFinishToDate for a 5-day activity starting at day 0 lands 4 working days later', () => {
     const projectStart = new Date('2026-07-01') // Wednesday
     // duration 5, ES=0, EF=5 (per EF = ES + duration)
-    const result = cpmFinishToDate(5, projectStart, [])
+    const result = cpmFinishToDate(0, 5, projectStart, [])
     // 4 working days after 2026-07-01 (Wed): Thu, Fri, Mon, Tue -> 2026-07-07
     expect(result.toISOString().slice(0, 10)).toBe('2026-07-07')
   })
@@ -157,8 +157,16 @@ describe('date conversion', () => {
     const selesai = '2026-07-07' // 5 working days inclusive (Wed-Tue, skipping weekend)
     const duration = computeDurasiHK(mulai, selesai, [])
     expect(duration).toBe(5)
-    const reconstructedSelesai = cpmFinishToDate(duration, projectStart, [])
+    const reconstructedSelesai = cpmFinishToDate(0, duration, projectStart, [])
     expect(reconstructedSelesai.toISOString().slice(0, 10)).toBe(selesai)
+  })
+
+  it('cpmFinishToDate for a zero-duration (milestone) activity equals its start date', () => {
+    const projectStart = new Date('2026-07-01') // Wednesday
+    // Milestone activity: earliestStart = earliestFinish = 3 (duration 0, no working days consumed).
+    const start = cpmStartToDate(3, projectStart, [])
+    const finish = cpmFinishToDate(3, 3, projectStart, [])
+    expect(finish).toEqual(start)
   })
 })
 

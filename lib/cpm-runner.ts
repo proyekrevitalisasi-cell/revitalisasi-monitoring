@@ -64,7 +64,7 @@ export function computeActivityCpmUpdate(
 
   if (!activity.date_locked) {
     mulai = format(cpmStartToDate(node.earliestStart, projectStart, holidays), 'yyyy-MM-dd')
-    selesai = format(cpmFinishToDate(node.earliestFinish, projectStart, holidays), 'yyyy-MM-dd')
+    selesai = format(cpmFinishToDate(node.earliestStart, node.earliestFinish, projectStart, holidays), 'yyyy-MM-dd')
     shifted = mulai !== activity.tanggal_mulai_rencana || selesai !== activity.tanggal_selesai_rencana
   }
 

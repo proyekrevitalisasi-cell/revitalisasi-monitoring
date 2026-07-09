@@ -40,3 +40,4 @@ tests/e2e/.auth/
 tests/e2e/.fixtures/
 playwright-report/
 test-results/
+docs/panduan-pengguna-perumnas.pdf
